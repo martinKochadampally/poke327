@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "queue.h"
@@ -9,6 +10,11 @@ int queue_init(queue *q){
 }
 
 int queue_enqueue(queue *q, char val){ // malloc
+    queue_item *tmp;
+
+    if (!(tmp = malloc(sizeof (*tmp)))) {
+        return -1;
+    }
     return 0;
 }
 

@@ -3,8 +3,8 @@
 
 typedef struct {
     queue_item *next;
-    char val;
-    int coordinates[2];
+    int x;
+    int y;
 } queue_item;
 
 typedef struct {
