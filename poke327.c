@@ -52,57 +52,57 @@ int main(int argc, char *argv[]) {
 
 
 int seed_map(char map[HEIGHT][WIDTH], queue *q) {
-    int x, y;
+    int x, y, size;
 
-    while (!queue_isEmpty(&q)) {
-        queue_dequeue(&q, &x, &y);
+    while (!queue_size(q, &size) && size) {
+        queue_dequeue(q, &x, &y);
 
         if (y-1 > -1 && x-1 > -1 && !map[y-1][x-1]){
-            map[y-1][x-1] = map[x,y];
-            if (queue_enqueue(&q, x-1, y-1)) {
+            map[y-1][x-1] = map[x][y];
+            if (queue_enqueue(q, x-1, y-1)) {
                 return -1;
             }
         }
         if (y-1 > -1 && !map[y-1][x]){
-            map[y-1][x] = map[x,y];
-            if (queue_enqueue(&q, x, y-1)) {
+            map[y-1][x] = map[x][y];
+            if (queue_enqueue(q, x, y-1)) {
                 return -1;
             }
         }
         if (y-1 > -1 && x+1 < WIDTH && !map[y-1][x+1]){
-            map[y-1][x+1] = map[x,y];
-            if (queue_enqueue(&q, x+1, y-1)) {
+            map[y-1][x+1] = map[x][y];
+            if (queue_enqueue(q, x+1, y-1)) {
                 return -1;
             }
         }
         if (x+1 < WIDTH && !map[y][x+1]){
-            map[y][x+1] = map[x,y];
-            if (queue_enqueue(&q, x+1, y)) {
+            map[y][x+1] = map[x][y];
+            if (queue_enqueue(q, x+1, y)) {
                 return -1;
             }
         }
         if (y+1 < HEIGHT && x+1 < WIDTH && !map[y+1][x+1]){
-            map[y+1][x+1] = map[x,y];
-            if (queue_enqueue(&q, x+1, y+1)) {
+            map[y+1][x+1] = map[x][y];
+            if (queue_enqueue(q, x+1, y+1)) {
                 return -1;
             }
         }
         if (y+1 < HEIGHT && x && !map[y+1][x]){
-            map[y+1][x] = map[x,y];
-            if (queue_enqueue(&q, x, y+1)) {
+            map[y+1][x] = map[x][y];
+            if (queue_enqueue(q, x, y+1)) {
                 return -1;
             }
 
         }
         if (y+1 < HEIGHT && x-1 > -1 && !map[y+1][x-1]){
-            map[y+1][x-1] = map[x,y];
-            if (queue_enqueue(&q, x-1, y+1)) {
+            map[y+1][x-1] = map[x][y];
+            if (queue_enqueue(q, x-1, y+1)) {
                 return -1;
             }
         }
         if (y && x-1 > -1 && !map[y][x-1]){
-            map[y][x-1] = map[x,y];
-            if (queue_enqueue(&q, x-1, y)) {
+            map[y][x-1] = map[x][y];
+            if (queue_enqueue(q, x-1, y)) {
                 return -1;
             }
         }

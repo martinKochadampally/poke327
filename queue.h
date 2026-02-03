@@ -1,14 +1,15 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-typedef struct {
-    queue_item *next;
+typedef struct queue_item {
+    struct queue_item *next;
     int x;
     int y;
 } queue_item;
 
 typedef struct {
     queue_item *first;
+    queue_item *last;
     int size;
 } queue;
 

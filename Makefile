@@ -1,2 +1,12 @@
-poke_327: poke_327.c
-	gcc poke_327.c -o poke_327 -g -Wall -Werror
+poke327: queue.o poke327.o
+	gcc queue.o poke327.o -o poke327
+
+#-c makes this stop after compiling returning the object file (.o files).
+queue.o: queue.c queue.h
+	gcc -Wall -Werror -g queue.c -c
+
+poke327.o: poke327.c queue.h
+	gcc -Wall -Werror -g poke327.c -c
+
+clean:
+	rm -f *.o poke327 *~
