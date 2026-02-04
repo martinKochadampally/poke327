@@ -1,1 +1,29 @@
-poke 327
+# Poke 327
+
+## Overview
+This is my pokemon game. Currently I only have the terrain generation code.
+
+### Terrain
+The terrain is generated through through a seeding porocess. First we set all the characters on the map to null. Then I randomly select coordinates for each of the symbols representing different terrains and in the same order add them to the queue. Once the seeds have been sown, we call the seed_map function. This works by pulling each seed from the queue and replicate the seeds symbol to the surrounding squares, if that square is unassigned (Almost like a fungus). This functions iterates till there is no more space to grow.
+
+I added three more terrain elements than the ones specified by the specification and here they are:
+    1. '^' which represents trees or a forest.
+    2. '%' which represents a mountainous region.
+    3. '*' which represents snow or the artic.
+
+Then we have road generation. This works by randomly generating the starting and ending positions of the road on the edge of the map and the point where they intersect. Then I just connect these point to form the road. I perform this twice: once for the vertical road and once for the horizontal road. After each generation, I pick a random point one the fist straight length of the road and place the pokemart and pokemon center. Lastly we generate the borders.
+
+
+## Running Instructions
+1. Change directories(cd) into the below folder: 
+Bash ```cd kochadampally_martin.assignment-1.01```
+
+2. Clean the folder:
+Bash ```make clean```
+
+3. Compile the code:
+Bash ```make poke327```
+
+4. Run the code:
+Bash ```./poke327```
+

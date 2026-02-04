@@ -10,11 +10,11 @@
 
 
 /*
-    % - boulders and mountainous rejions.
-    ^ - trees and forests.
+    % - immovable boulders and mountainous regions.
+    ^ - forest.
     : - long grass.
     . - clearings.
-    ~ - water.
+    ~ - lake.
     * - artic.
     # - roads.
     Cs - are Pokemon Centers.
@@ -24,7 +24,7 @@
 int main(int argc, char *argv[]) {
     //-----------Variables-------------------------------------
     char map[HEIGHT][WIDTH];
-    char characters[] = {'.', '.', '~', ':', '^', '*', ':', '.', '%'};
+    char characters[] = {'.', '.', '~', ':', '^', '*', ':', '.', '~', '%'};
     int length = sizeof(characters) / sizeof(characters[0]);
 
     int p1, p2, inter;
@@ -59,14 +59,14 @@ int main(int argc, char *argv[]) {
     inter = WIDTH/4 + rand()%(WIDTH - WIDTH/4);
 
     place_roads(map, 0, p1, p2, inter);
-    place_pokemon_center(map, p1, 0, inter);
+    place_building(map, p1, 0, inter, 0, 'C');
 
     p1 = 2 + rand()%(WIDTH - 3);
     p2 = 2 + rand()%(WIDTH - 3);
     inter = HEIGHT/5 + rand()%(HEIGHT - HEIGHT/5);
 
     place_roads(map, 1, p1, p2, inter);
-    place_pokemart(map, p1, 0, inter);
+    place_building(map, p1, 0, inter, 1, 'M');
 
     init_borders(map);
 

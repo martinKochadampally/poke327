@@ -7,7 +7,7 @@
 #define HEIGHT 21
 #define WIDTH 80
 
-
+/* Sets everything on the map to \0 to make seeding easier. */
 int clear_map(char map[HEIGHT][WIDTH]) {
     int i, j;
 
@@ -20,6 +20,8 @@ int clear_map(char map[HEIGHT][WIDTH]) {
     return 0;
 }
 
+/* This code given the 2 endpoints of the path and where they are supposed to meet, 
+generates a road with a bend at intersection */
 int place_roads(char map[HEIGHT][WIDTH], int direction, int p1, int p2, int intersection) {
     int i;
     int HorW = direction ? HEIGHT : WIDTH;  
@@ -59,16 +61,15 @@ int place_roads(char map[HEIGHT][WIDTH], int direction, int p1, int p2, int inte
     return 0;
 }
 
-
+/* This function takes the map an the queue that has
+already been seeded in poke327.c and expands the seed to 
+all neigbouring unwritten space.
+By unwritten I mean with value of '\0'*/
 int seed_map(char map[HEIGHT][WIDTH], queue *q) {
     int x, y, size;
-    // int count1 = 0;
 
     while (!queue_size(q, &size) && size) {
         queue_dequeue(q, &x, &y);
-        // if (map[y][x] == '%' && ++count1 > 100) {
-        //     continue;
-        // }
 
         if (y-1 > -1 && x-1 > -1 && !map[y-1][x-1]){
             map[y-1][x-1] = map[y][x];
@@ -143,41 +144,36 @@ int init_borders(char map[HEIGHT][WIDTH]){
     return 0;
 }
 
-int place_pokemon_center(char map[HEIGHT][WIDTH],int road, int p1, int p2){
-    int x = p1 + 1 + rand()%(p2-p1-2);
-    int y;
+/* This code places the 2x2 square for the pokemon center. 
+It does this by randomly picking a point on the first half of the road
+and placing the spcified building above it or below it if there isnt space. 
 
-    if (road > HEIGHT/4)
-        y = road - 2;
-    else
-        y = road + 1;
+direction indicates whether this is the vertical road or horizontal road. */
+int place_building(char map[HEIGHT][WIDTH],int road, int p1, int p2, int direction, char symbol){
+    int tmp;
+    int x, y;
 
-    map[y][x] = 'C';
-    map[y][x+1] = 'C';
-    map[y+1][x] = 'C';
-    map[y+1][x+1] = 'C';
+    do {
+        x = p1 + 1 + rand()%(p2-p1-2);
+        if (road > HEIGHT/4) {
+            y = road - 2;
+        }   else {
+            y = road + 1;
+        }
+        if (direction) {
+            tmp = x;
+            x = y;
+            y = tmp;
+        }
+    } while (map[y][x] == '#' || map[y+1][x+1] == '#' || map[y][x] == 'C' || map[y+1][x+1] == 'M');
 
-    return 0;
-}
-
-int place_pokemart(char map[HEIGHT][WIDTH],int road, int p1, int p2){
-    int y = p1 + 1 + rand()%(p2-p1-2);
-    int x;
-
-    if (road > WIDTH/5)
-        x = road - 2;
-    else
-        x = road + 1;
-
-    map[y][x] = 'M';
-    map[y][x+1] = 'M';
-    map[y+1][x] = 'M';
-    map[y+1][x+1] = 'M';
+    map[y][x] = map[y][x+1] = map[y+1][x] = map[y+1][x+1] = symbol;
 
     return 0;
 }
 
-
+/* This function prints out the map by outputting the character stored
+in each pixel, unless it is null, then it outputs a " ". */
 int print_map(char map[HEIGHT][WIDTH]) {
     int i, j;
 
