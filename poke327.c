@@ -3,110 +3,76 @@
 #include <time.h>
 
 #include "queue.h"
+#include "terrain.h"
 
 #define HEIGHT 21
 #define WIDTH 80
 
-int seed_map(char map[HEIGHT][WIDTH], queue *q);
 
 /*
-    % - boulders and roads.
+    % - boulders and mountainous rejions.
     ^ - trees and forests.
     : - long grass.
     . - clearings.
     ~ - water.
+    * - artic.
     # - roads.
     Cs - are Pokemon Centers.
     Ms - are Pokemarts.
     @ - Player Character
 */
 int main(int argc, char *argv[]) {
-    int i, x, y;
+    //-----------Variables-------------------------------------
     char map[HEIGHT][WIDTH];
+    char characters[] = {'.', '.', '~', ':', '^', '*', ':', '.', '%'};
+    int length = sizeof(characters) / sizeof(characters[0]);
+
+    int p1, p2, inter;
+    int i;
+    int x, y;
     queue q;
-    
+
     srand(time(NULL));
 
-    char characters[] = {'.', ':', '^', '~', '%'};
-    int length = sizeof(characters) / sizeof(characters[0]);
+    //---------------------------------------------------------
+
+    clear_map(map);
+
     queue_init(&q);
 
     for (i = 0; i < length; i++) {
-        x = 1 + rand()%79;
-        y = 1 + rand()%20;
+        x = 1 + rand()%(WIDTH - 2);
+        y = 1 + rand()%(HEIGHT - 2);
         map[y][x] = characters[i];
         if (queue_enqueue(&q, x, y)) {
             return -1;
         }
     }
 
-    printf("%c\n", map[0][0]);
+    //print_map(map);
+
     if (seed_map(map, &q))
         return -1;
-    printf("%c\n", map[0][0]);
+    
+    p1 = 2 + rand()%(HEIGHT - 3);
+    p2 = 2 + rand()%(HEIGHT - 3);
+    inter = WIDTH/4 + rand()%(WIDTH - WIDTH/4);
+
+    place_roads(map, 0, p1, p2, inter);
+    place_pokemon_center(map, p1, 0, inter);
+
+    p1 = 2 + rand()%(WIDTH - 3);
+    p2 = 2 + rand()%(WIDTH - 3);
+    inter = HEIGHT/5 + rand()%(HEIGHT - HEIGHT/5);
+
+    place_roads(map, 1, p1, p2, inter);
+    place_pokemart(map, p1, 0, inter);
+
+    init_borders(map);
+
+    print_map(map);
 
     queue_destroy(&q);
-
-    return 0;
-}
-
-
-int seed_map(char map[HEIGHT][WIDTH], queue *q) {
-    int x, y, size;
-
-    while (!queue_size(q, &size) && size) {
-        queue_dequeue(q, &x, &y);
-
-        if (y-1 > -1 && x-1 > -1 && !map[y-1][x-1]){
-            map[y-1][x-1] = map[x][y];
-            if (queue_enqueue(q, x-1, y-1)) {
-                return -1;
-            }
-        }
-        if (y-1 > -1 && !map[y-1][x]){
-            map[y-1][x] = map[x][y];
-            if (queue_enqueue(q, x, y-1)) {
-                return -1;
-            }
-        }
-        if (y-1 > -1 && x+1 < WIDTH && !map[y-1][x+1]){
-            map[y-1][x+1] = map[x][y];
-            if (queue_enqueue(q, x+1, y-1)) {
-                return -1;
-            }
-        }
-        if (x+1 < WIDTH && !map[y][x+1]){
-            map[y][x+1] = map[x][y];
-            if (queue_enqueue(q, x+1, y)) {
-                return -1;
-            }
-        }
-        if (y+1 < HEIGHT && x+1 < WIDTH && !map[y+1][x+1]){
-            map[y+1][x+1] = map[x][y];
-            if (queue_enqueue(q, x+1, y+1)) {
-                return -1;
-            }
-        }
-        if (y+1 < HEIGHT && x && !map[y+1][x]){
-            map[y+1][x] = map[x][y];
-            if (queue_enqueue(q, x, y+1)) {
-                return -1;
-            }
-
-        }
-        if (y+1 < HEIGHT && x-1 > -1 && !map[y+1][x-1]){
-            map[y+1][x-1] = map[x][y];
-            if (queue_enqueue(q, x-1, y+1)) {
-                return -1;
-            }
-        }
-        if (y && x-1 > -1 && !map[y][x-1]){
-            map[y][x-1] = map[x][y];
-            if (queue_enqueue(q, x-1, y)) {
-                return -1;
-            }
-        }
-    }
 
     return 0;
 }

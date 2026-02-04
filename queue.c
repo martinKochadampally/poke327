@@ -20,6 +20,7 @@ int queue_enqueue(queue *q, int x, int y){
 
     tmp->x = x;
     tmp->y = y;
+    tmp->next = NULL;
 
     if (!q->size) {
         q->first = tmp;
@@ -38,7 +39,7 @@ int queue_enqueue(queue *q, int x, int y){
 int queue_dequeue(queue *q, int *x, int *y){ // free
     queue_item *tmp;
 
-    if (!q && !q->size) {
+    if (!q || !q->size) {
         return -1;
     }
 
@@ -52,10 +53,18 @@ int queue_dequeue(queue *q, int *x, int *y){ // free
 
     q->size--;
 
+    if (q->size == 0) {
+        q->last = NULL;
+    }
+
     return 0;
 }
 
 int queue_peek(queue *q, int *x, int *y){
+    if (!q || !q->size) {
+        return -1;
+    }
+
     *x = q->first->x;
     *y = q->first->y;
     return 0;
