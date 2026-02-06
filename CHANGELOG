@@ -1,0 +1,9 @@
+* 2026-02-04 14:12 | Cleaned up some code and added comments and README file.
+* 2026-02-04 01:39 | Finished up everything. The seeding wasnt working because I mixed up my index variables for the 2D array. Initially I had decided to seed after putting the roads in, however, this led to there being empy spots inbetween the roads, so I fixed this by adding roads after seeding map. Then I randomly picked a spot along the road and add the pokemart on the vertical road and the pokemon center on the horizontal one. Now everything seems to be working.
+* 2026-02-03 12:38 | There seems to be an infinite loop in my seeding algorithim. I have completed the queue.
+* 2026-01-31 20:40 | Deleted src and bin folders because they just over complicate things.
+* 2026-01-31 20:10 | I have finished implementing the seeding code for the map terrain, but inorder to test it I have to finish the code for queue.c, so that will be what I am doing next.
+* 2026-01-31 01:04 | working on making a queue. i will finish it tommorow.
+* 2026-01-30 15:37 | I ran in to a bug when trying to run my code. It was returning -1 because I accidently put a ! mark before the function name in the if statment.
+* 2026-01-30 00:05 | Added a Makefile, a readme and a changelog. I also starting working on ./src/main with a table of size 21x80 and created the function intitialize_map.
+* 2026-01-29 23:39 | Getting started on assignment 1.01
