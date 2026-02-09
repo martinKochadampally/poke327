@@ -80,8 +80,12 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
 
     init_map(&m);
+    m.pE = 2 + rand()%(HEIGHT - 3);
+    m.pW = 2 + rand()%(HEIGHT - 3);
+    m.pN = 2 + rand()%(WIDTH - 3);
+    m.pS = 2 + rand()%(WIDTH - 3);
     seed_map(&m);
-    print_map(&m);
+    //print_map(&m);
     place_paths(&m);
     print_map(&m);
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "queue.h"
 #include "map.h"
 
@@ -55,8 +56,6 @@ int seed_map(map *m) {
         if (queue_enqueue(&q, x, y)) return -1;
     }
 
-    print_map(m);
-
     while (!queue_size(&q, &size) && size) {
         queue_dequeue(&q, &x, &y);
         current = &m->tiles[y][x];
@@ -93,6 +92,7 @@ int seed_map(map *m) {
 int place_paths(map *m) {
     int i;
     int x, y, intersection;
+    int min, max;
 
     intersection = WIDTH/8 + rand()%(WIDTH - WIDTH/4);
 
@@ -102,12 +102,26 @@ int place_paths(map *m) {
         m->tiles[y][i].val = PATH;
     }
 
-    intersection = HEIGHT/8 + rand()%(HEIGHT - HEIGHT/4);
+    min = ((m->pE) < (m->pW) ? (m->pE) : (m->pW));
+    max = ((m->pE) > (m->pW) ? (m->pE) : (m->pW));
+
+    for (i = min; i < max; i++) {
+        m->tiles[i][intersection].val = PATH;
+    }
+
+    intersection = HEIGHT/10 + rand()%(HEIGHT - HEIGHT/5);
 
     x = m->pN;
     for (i = 0; i < HEIGHT; i++) {
         if (i == intersection) x = m->pS;
         m->tiles[i][x].val = PATH;
+    }
+
+    min = ((m->pN) < (m->pS) ? (m->pN) : (m->pS));
+    max = ((m->pN) > (m->pS) ? (m->pN) : (m->pS));
+
+    for (i = min; i < max; i++) {
+        m->tiles[intersection][i].val = PATH;
     }
 
     return 0;
