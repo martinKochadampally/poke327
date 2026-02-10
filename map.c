@@ -12,17 +12,14 @@ int init_map(map *m) {
         for (x = 0; x < WIDTH; x++) {
             m->tiles[y][x].val = (!x || !y || x == WIDTH-1 || y == HEIGHT-1)? BOULDER: -1;
 
-            m->tiles[y][x].up = (x)? &m->tiles[y-1][x] : NULL;
-            m->tiles[y][x].down = (x < WIDTH-1)? &m->tiles[y+1][x] : NULL;
-            m->tiles[y][x].left = (y)? &m->tiles[y][x-1] : NULL;
-            m->tiles[y][x].right = (y < HEIGHT-1)? &m->tiles[y][x+1] : NULL;
+            m->tiles[y][x].up = (y)? &m->tiles[y-1][x] : NULL;
+            m->tiles[y][x].down = (y < HEIGHT-1)? &m->tiles[y+1][x] : NULL;
+            m->tiles[y][x].left = (x)? &m->tiles[y][x-1] : NULL;
+            m->tiles[y][x].right = (x < WIDTH-1)? &m->tiles[y][x+1] : NULL;
         }
     }
     
-    m->pN = -1;
-    m->pS = -1;
-    m->pE = -1;
-    m->pW = -1;
+    m->pN = m->pS = m->pE = m->pW = -1;
 
     m->is_initialized = 0;
 
@@ -40,8 +37,8 @@ int seed_map(map *m) {
 
     queue_init(&q);
 
-    enum terrain_type regions[] = {CLEARING, TALL_GRASS, CLEARING, LAKE, ARCTIC, TALL_GRASS, LAKE, FOREST, BOULDER};
-    int num_regions = 9;
+    enum terrain_type regions[] = {CLEARING, TALL_GRASS, CLEARING, LAKE, ARCTIC, TALL_GRASS, LAKE, CLEARING, BOULDER};
+    int num_regions = sizeof(regions) / sizeof(enum terrain_type);
 
     for (i = 0; i < num_regions; i++) {
         x = 1 + rand() % (WIDTH - 2);
@@ -105,9 +102,11 @@ int place_paths(map *m) {
     min = ((m->pE) < (m->pW) ? (m->pE) : (m->pW));
     max = ((m->pE) > (m->pW) ? (m->pE) : (m->pW));
 
-    for (i = min; i < max; i++) {
+    for (i = min; i <= max; i++) {
         m->tiles[i][intersection].val = PATH;
     }
+
+    place_buildings(m, intersection, m->pE, POKECENTER, HEIGHT);
 
     intersection = HEIGHT/10 + rand()%(HEIGHT - HEIGHT/5);
 
@@ -120,15 +119,42 @@ int place_paths(map *m) {
     min = ((m->pN) < (m->pS) ? (m->pN) : (m->pS));
     max = ((m->pN) > (m->pS) ? (m->pN) : (m->pS));
 
-    for (i = min; i < max; i++) {
+    for (i = min; i <= max; i++) {
         m->tiles[intersection][i].val = PATH;
     }
+
+    place_buildings(m, intersection, m->pN, POKEMART, WIDTH);
+
+    return 0;
+}
+
+int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, int upperbound) {
+    int tmp;
+    int x, y;
+
+    do {
+        x = 1 + rand()%(intersection-2);
+
+        if (path > upperbound/4) y = path - 2;
+        else y = path + 1;
+
+        if (upperbound == WIDTH) {
+            tmp = x;
+            x = y;
+            y = tmp;
+        }
+    } while ( y <= 0 || y >= HEIGHT - 2 || x <= 0 || x >= WIDTH - 2 ||
+        m->tiles[y][x].val == PATH || m->tiles[y+1][x+1].val == PATH || 
+        m->tiles[y][x].val == POKECENTER || m->tiles[y+1][x+1].val == POKECENTER);
+
+    m->tiles[y][x].val = m->tiles[y][x+1].val = m->tiles[y+1][x].val = m->tiles[y+1][x+1].val = VAL;
 
     return 0;
 }
 
 int print_map(map *m) {
     int i, j;
+    char c;
 
     for (i = 0; i < HEIGHT; i++) {
         for (j = 0; j < WIDTH; j++) {
@@ -137,30 +163,35 @@ int print_map(map *m) {
             else {
                 switch (m->tiles[i][j].val) {
                 case PATH:
-                    printf("%c", '#');
+                    c = '#';
                     break;
                 case CLEARING:
-                    printf("%c", '.');
+                    c = '.';
                     break;
                 case TALL_GRASS:
-                    printf("%c", ':');
+                    c = ':';
                     break;
                 case ARCTIC:
-                    printf("%c", '*');
+                    c = '*';
                     break;
-                case LAKE:
-                    printf("%c", '~');
+                case LAKE: 
+                    c = '~';
                     break;
                 case FOREST:
-                    printf("%c", '^');
+                    c = '^';
                     break;
                 case BOULDER:
-                    printf("%c", '%');
+                    c = '%';
                     break;
-                default:
+                case POKECENTER:
+                    c = 'C';
+                    break;
+                case POKEMART:
+                    c = 'M';
                     break;
                 }
             }
+            printf("%c", c);
         }
         printf("\n");
     }

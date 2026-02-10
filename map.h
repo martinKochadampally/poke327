@@ -12,7 +12,9 @@ enum terrain_type{
     ARCTIC = 4,
     LAKE = 8,
     FOREST = 16,
-    BOULDER = 32, 
+    BOULDER = 32,
+    POKECENTER = 64,
+    POKEMART = 65
 };
 
 typedef struct tile{
@@ -32,6 +34,7 @@ typedef struct {
 int init_map(map *m);
 int seed_map(map *m);
 int place_paths(map *m);
+int place_buildings(map *m, int start, int intersection, enum terrain_type VAL, int upperbound);
 int print_map(map *m);
 
 
