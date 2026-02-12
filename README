@@ -1,9 +1,11 @@
 # Poke 327
 
 ## Overview
-This is my pokemon game. Currently I only have the terrain generation code.
+This is my pokemon game. When you run the game, it will take you into a 400x400 randomly generating world map, where you can fly around and move north south east and west from your current position until you reach the end of the world. There will be decreasing numbers of pokemarts and pokecenters as you move outwards.
 
-### Terrain
+### Updates
+I have implement the maps, so that they hold the position of the four gates and thier current x, y position in the world. I also added pointers from each of the squares to its surrounding squares, and uodated this for the seeding code as well. Then moving on to the updates made for assignment-1.02, I used a queue to keep track of the maps created, so that i know what to free in the end, enqueuing maps as I create them. I then used a while loop, fgets and sscanf to get the get the commands from the user. I used the eq from the specs to reduce the number of buildings as you travel further away from rhe center, and assigned gates before world generation, to ensure consistency with neighbouring maps.
+
 The terrain is generated through through a seeding porocess. First we set all the characters on the map to null. Then I randomly select coordinates for each of the symbols representing different terrains and in the same order add them to the queue. Once the seeds have been sown, we call the seed_map function. This works by pulling each seed from the queue and replicate the seeds symbol to the surrounding squares, if that square is unassigned (Almost like a fungus). This functions iterates till there is no more space to grow.
 
 I added three more terrain elements than the ones specified by the specification and here they are:
