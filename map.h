@@ -3,6 +3,8 @@
 
 #define HEIGHT 21
 #define WIDTH 80
+// #define HEIGHT 10
+// #define WIDTH 10
 #define TERRAIN_COUNT 6 // Number of terrain elements excluding the path.
 
 enum terrain_type{
@@ -28,12 +30,12 @@ typedef struct tile{
 typedef struct {
     tile tiles[HEIGHT][WIDTH];
     int pN, pS, pE, pW;
-    int is_initialized; // 0 means it is intialized
+    int pos_x, pos_y; // Location of the map in the world.
 } map;
 
-int init_map(map *m);
+int init_map(map *m, int pos_x, int pos_y);
 int seed_map(map *m);
-int place_paths(map *m);
+int place_paths_and_buildings(map *m);
 int place_buildings(map *m, int start, int intersection, enum terrain_type VAL, int upperbound);
 int print_map(map *m);
 

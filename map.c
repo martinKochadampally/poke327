@@ -5,7 +5,7 @@
 #include "map.h"
 
 
-int init_map(map *m) {    
+int init_map(map *m, int pos_x, int pos_y) {    
     int x, y;
 
     for (y = 0; y < HEIGHT; y++) {
@@ -19,9 +19,9 @@ int init_map(map *m) {
         }
     }
     
+    m->pos_x = pos_x;
+    m->pos_y = pos_y;
     m->pN = m->pS = m->pE = m->pW = -1;
-
-    m->is_initialized = 0;
 
     return 0;
 }
@@ -31,13 +31,11 @@ int seed_map(map *m) {
     queue q;
     tile *current;
 
-    if (m->is_initialized){
-        return -1;
-    }
+    if (!m) return -1;
 
     queue_init(&q);
 
-    enum terrain_type regions[] = {CLEARING, TALL_GRASS, CLEARING, LAKE, ARCTIC, TALL_GRASS, LAKE, CLEARING, BOULDER};
+    enum terrain_type regions[] = {CLEARING, TALL_GRASS, CLEARING, LAKE, ARCTIC, TALL_GRASS, CLEARING, FOREST, BOULDER};
     int num_regions = sizeof(regions) / sizeof(enum terrain_type);
 
     for (i = 0; i < num_regions; i++) {
@@ -54,6 +52,8 @@ int seed_map(map *m) {
     }
 
     while (!queue_size(&q, &size) && size) {
+        //if (current->val == BOULDER && (rand()%20)) continue;
+
         queue_dequeue(&q, &x, &y);
         current = &m->tiles[y][x];
 
@@ -86,16 +86,34 @@ int seed_map(map *m) {
     return 0;
 }
 
-int place_paths(map *m) {
+int place_paths_and_buildings(map *m) {
     int i;
-    int x, y, intersection;
+    int x, y, intersection1, intersection2;
     int min, max;
+    int d = abs(m->pos_x - 200) + abs(m->pos_y - 200);
+    int center = 0;
+    int mart = 0;
 
-    intersection = WIDTH/8 + rand()%(WIDTH - WIDTH/4);
+    if (d == 0) {
+        center = mart = 1;
+    } else {
+        double p;
+        if (d < 200) {
+            p = ((-45.0 * d) / 200.0 + 50.0) / 100.0;
+        } else {
+            p = 0.05;
+        }
 
-    y = m->pE;
+        if ((rand() % 100) < (p * 100)) center = 1;
+        if ((rand() % 100) < (p * 100)) mart = 1;
+    }
+
+
+    intersection1 = WIDTH/8 + rand()%(WIDTH - WIDTH/4);
+
+    y = m->pW;
     for (i = 0; i < WIDTH; i++) {
-        if (i == intersection) y = m->pW;
+        if (i == intersection1) y = m->pE;
         m->tiles[y][i].val = PATH;
     }
 
@@ -103,16 +121,14 @@ int place_paths(map *m) {
     max = ((m->pE) > (m->pW) ? (m->pE) : (m->pW));
 
     for (i = min; i <= max; i++) {
-        m->tiles[i][intersection].val = PATH;
+        m->tiles[i][intersection1].val = PATH;
     }
 
-    place_buildings(m, intersection, m->pE, POKECENTER, HEIGHT);
-
-    intersection = HEIGHT/10 + rand()%(HEIGHT - HEIGHT/5);
+    intersection2 = HEIGHT/10 + rand()%(HEIGHT - HEIGHT/5);
 
     x = m->pN;
     for (i = 0; i < HEIGHT; i++) {
-        if (i == intersection) x = m->pS;
+        if (i == intersection2) x = m->pS;
         m->tiles[i][x].val = PATH;
     }
 
@@ -120,19 +136,23 @@ int place_paths(map *m) {
     max = ((m->pN) > (m->pS) ? (m->pN) : (m->pS));
 
     for (i = min; i <= max; i++) {
-        m->tiles[intersection][i].val = PATH;
+        m->tiles[intersection2][i].val = PATH;
     }
 
-    place_buildings(m, intersection, m->pN, POKEMART, WIDTH);
+    if (center) place_buildings(m, intersection1, m->pE, POKECENTER, HEIGHT);
 
+    if (mart) place_buildings(m, intersection2, m->pN, POKEMART, WIDTH);
+    
     return 0;
 }
 
 int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, int upperbound) {
     int tmp;
     int x, y;
+    int attempts = 0;
 
     do {
+        if (attempts++ > 1000) return -1;
         x = 1 + rand()%(intersection-2);
 
         if (path > upperbound/4) y = path - 2;
@@ -159,7 +179,7 @@ int print_map(map *m) {
     for (i = 0; i < HEIGHT; i++) {
         for (j = 0; j < WIDTH; j++) {
             if (m->tiles[i][j].val == -1)
-                printf("%c", ' ');
+                c = ' ';
             else {
                 switch (m->tiles[i][j].val) {
                 case PATH:
@@ -196,6 +216,7 @@ int print_map(map *m) {
         printf("\n");
     }
 
+    printf("position: (%i, %i)\n", (m->pos_x - 200), (m->pos_y - 200));
+
     return 0;
 }
-

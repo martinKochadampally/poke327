@@ -18,7 +18,6 @@ int queue_enqueue(queue *q, int x, int y);
 int queue_dequeue(queue *q, int *x, int *y);
 int queue_peek(queue *q, int *x, int *y);
 int queue_size(queue *q, int *size);
-int queue_isEmpty(queue *q);
 int queue_destroy(queue *q);
 
 #endif

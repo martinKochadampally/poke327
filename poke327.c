@@ -18,76 +18,108 @@
     Ms - are Pokemarts.
     @ - Player Character
 */
-// int main(int argc, char *argv[]) {
-//     //-----------Variables-------------------------------------
-//     char map[HEIGHT][WIDTH];
-//     char characters[] = {'.', '.', '~', ':', '^', '*', ':', '.', '~', '%'};
-//     int length = sizeof(characters) / sizeof(characters[0]);
-
-//     int p1, p2, inter;
-//     int i;
-//     int x, y;
-//     queue q;
-
-//     srand(time(NULL));
-
-//     //---------------------------------------------------------
-
-//     clear_map(map);
-
-//     queue_init(&q);
-
-//     for (i = 0; i < length; i++) {
-//         x = 1 + rand()%(WIDTH - 2);
-//         y = 1 + rand()%(HEIGHT - 2);
-//         map[y][x] = characters[i];
-//         if (queue_enqueue(&q, x, y)) {
-//             return -1;
-//         }
-//     }
-
-//     //print_map(map);
-
-//     if (seed_map(map, &q))
-//         return -1;
-    
-//     p1 = 2 + rand()%(HEIGHT - 3);
-//     p2 = 2 + rand()%(HEIGHT - 3);
-//     inter = WIDTH/4 + rand()%(WIDTH - WIDTH/4);
-
-//     place_roads(map, 0, p1, p2, inter);
-//     place_building(map, p1, 0, inter, 0, 'C');
-
-//     p1 = 2 + rand()%(WIDTH - 3);
-//     p2 = 2 + rand()%(WIDTH - 3);
-//     inter = HEIGHT/5 + rand()%(HEIGHT - HEIGHT/5);
-
-//     place_roads(map, 1, p1, p2, inter);
-//     place_building(map, p1, 0, inter, 1, 'M');
-
-//     init_borders(map);
-
-//     print_map(map);
-
-//     queue_destroy(&q);
-
-//     return 0;
-// }
-
 int main(int argc, char *argv[]) {
-    map m;
+    map *world[401][401] = {{NULL}};
+    queue visited;
+    int y, x;
+    char input[20];
+    int new_x_pos, new_y_pos;
 
     srand(time(NULL));
+    queue_init(&visited);
+    
+    input[0] = 'f';
+    new_x_pos = 0;
+    new_y_pos = 0;
+    
+    while (input[0] != 'q') {
+        if (input[0] == 'f' ) {
+            x = new_x_pos + 200;
+            y = new_y_pos + 200;
+        } 
+        else if (input[0] == 'n' && y > 0) y--;
+        else if (input[0] == 's' && y < 400) y++;
+        else if (input[0] == 'e' && x < 400) x++;
+        else if (input[0] == 'w' && x > 0) x--;
+        else {
+            printf("Invalid command or edge of world reached!\n");
+        }
 
-    init_map(&m);
-    m.pE = 3 + rand()%(HEIGHT - 6);
-    m.pW = 3 + rand()%(HEIGHT - 6);
-    m.pN = 3 + rand()%(WIDTH - 6);
-    m.pS = 3 + rand()%(WIDTH - 6);
-    seed_map(&m);
-    //print_map(&m);
-    place_paths(&m);
-    print_map(&m);
+        if (!world[y][x]) {
+            world[y][x] = malloc(sizeof (map));
+
+            if (!world[y][x]) {
+                fprintf(stderr, "Malloc failed.");
+                return -1;
+            }
+
+            if (queue_enqueue(&visited, x, y)) {
+                return -1;
+            }
+
+            init_map(world[y][x], x, y);
+
+            // Check north.
+            if (y > 0 && world[y - 1][x] != NULL) {
+                world[y][x]->pN = world[y - 1][x]->pS;
+            } else {
+                world[y][x]->pN = 4 + rand() % (WIDTH - 8);
+            }
+
+            // Check south.
+            if (y < 400 && world[y + 1][x] != NULL) {
+                world[y][x]->pS = world[y + 1][x]->pN;
+            } else {
+                world[y][x]->pS = 4 + rand() % (WIDTH - 8);
+            }
+
+            // Check west.
+            if (x > 0 && world[y][x - 1] != NULL) {
+                world[y][x]->pW = world[y][x - 1]->pE;
+            } else {
+                world[y][x]->pW = 4 + rand() % (HEIGHT - 8);
+            }
+
+            // Check East.
+            if (x < 400 && world[y][x + 1] != NULL) {
+                world[y][x]->pE = world[y][x + 1]->pW;
+            } else {
+                world[y][x]->pE = 4 + rand() % (HEIGHT - 8);
+            }
+
+            if (seed_map(world[y][x])) {
+                fprintf(stderr, "Seeding failed.");
+                return -1;
+            }
+            
+            place_paths_and_buildings(world[y][x]);
+
+        }
+
+        print_map(world[y][x]);
+
+        printf("Enter a command (n, s, e, w, f <x> <y>, q): ");
+
+        if (!fgets(input, sizeof (input), stdin)) {
+            return -1;
+        }
+
+        if (input[0] == 'f') {
+            int temp_x, temp_y;
+            if (sscanf(input, "f %d %d", &temp_x, &temp_y) == 2) {
+                if (temp_x >= -200 && temp_x <= 200 && temp_y >= -200 && temp_y <= 200) {
+                    new_x_pos = temp_x;
+                    new_y_pos = temp_y;
+                } else {
+                    printf("Out of bounds! Stay between -200 and 200.\n");
+                }
+            }
+        }
+    }
+
+    while (!queue_dequeue(&visited, &x, &y)) {
+        free(world[y][x]);
+    }
 
     return 0;
 }
