@@ -1,3 +1,4 @@
+* 2026-02-11 22:56 | Updated readme and changelog.
 * 2026-02-11 22:42 | I finished the movement and probability for the buildings code. I ran into a major bug when i was trying to move. When moving east and west the paths werent lining up, however, i figured out the issue. The problem was I was placing the roads wrong. I was placing roads from the east gates position and ending at the west gates, when it should have been the other way around.
 * 2026-02-09 19:45 | Finished place_buldings code. Now I can move onto assignment-1.02
 * 2026-02-09 16:29 | I figured out the problem! I was never instantiating the gates, so the compiler didn't know what those values where. It has now been fixed. Now I will be moving onto the building code.

@@ -8,22 +8,27 @@
 #define TERRAIN_COUNT 6 // Number of terrain elements excluding the path.
 
 enum terrain_type{
-    PATH = 0,
-    CLEARING = 1,
-    TALL_GRASS = 2,
-    ARCTIC = 4,
-    LAKE = 8,
-    FOREST = 16,
-    BOULDER = 32,
-    POKECENTER = 64,
-    POKEMART = 65
+    EMPTY = -1,
+    PATH,
+    CLEARING,
+    TALL_GRASS,
+    ARCTIC,
+    LAKE,
+    FOREST,
+    BOULDER,
+    POKECENTER,
+    POKEMART
 };
 
 typedef struct tile{
+    struct tile *top_left;
     struct tile *up;
-    struct tile *down;
-    struct tile *left;
+    struct tile *top_right;
     struct tile *right;
+    struct tile *bottom_right;
+    struct tile *down;
+    struct tile *bottom_left;
+    struct tile *left;
     enum terrain_type val;
 } tile;
 
@@ -36,7 +41,7 @@ typedef struct {
 int init_map(map *m, int pos_x, int pos_y);
 int seed_map(map *m);
 int place_paths_and_buildings(map *m);
-int place_buildings(map *m, int start, int intersection, enum terrain_type VAL, int upperbound);
+int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, int upperbound);
 int print_map(map *m);
 
 

@@ -18,7 +18,7 @@ Then we have road generation. This works by randomly generating the starting and
 
 ## Running Instructions
 1. Change directories(cd) into the below folder: 
-Bash ```cd kochadampally_martin.assignment-1.01```
+Bash ```cd kochadampally_martin.assignment-1.02```
 
 2. Clean the folder:
 Bash ```make clean```

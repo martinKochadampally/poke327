@@ -10,12 +10,19 @@ int init_map(map *m, int pos_x, int pos_y) {
 
     for (y = 0; y < HEIGHT; y++) {
         for (x = 0; x < WIDTH; x++) {
-            m->tiles[y][x].val = (!x || !y || x == WIDTH-1 || y == HEIGHT-1)? BOULDER: -1;
+            m->tiles[y][x].val = (!x || !y || x == WIDTH-1 || y == HEIGHT-1)? BOULDER: EMPTY;
 
+            // up, down, left, right
             m->tiles[y][x].up = (y)? &m->tiles[y-1][x] : NULL;
             m->tiles[y][x].down = (y < HEIGHT-1)? &m->tiles[y+1][x] : NULL;
             m->tiles[y][x].left = (x)? &m->tiles[y][x-1] : NULL;
             m->tiles[y][x].right = (x < WIDTH-1)? &m->tiles[y][x+1] : NULL;
+
+            // diagonals
+            m->tiles[y][x].top_left = (y && x)? &m->tiles[y-1][x-1] : NULL;
+            m->tiles[y][x].top_right = (y && x < WIDTH-1)? &m->tiles[y-1][x+1] : NULL;
+            m->tiles[y][x].bottom_left = (y < HEIGHT-1 && x)? &m->tiles[y+1][x-1] : NULL;
+            m->tiles[y][x].bottom_right = (y < HEIGHT-1 && x < WIDTH-1)? &m->tiles[y+1][x+1] : NULL;
         }
     }
     
@@ -42,7 +49,7 @@ int seed_map(map *m) {
         x = 1 + rand() % (WIDTH - 2);
         y = 1 + rand() % (HEIGHT - 2);
 
-        if (m->tiles[y][x].val != -1) {
+        if (m->tiles[y][x].val != EMPTY) {
             i--;
             continue;
         }
@@ -57,25 +64,25 @@ int seed_map(map *m) {
         queue_dequeue(&q, &x, &y);
         current = &m->tiles[y][x];
 
-        if (current->up && current->up->val == -1){
+        if (current->up && current->up->val == EMPTY){
             current->up->val = current->val;
             if (queue_enqueue(&q, x, y-1)) {
                 return -1;
             }
         }
-        if (current->down && current->down->val == -1){
+        if (current->down && current->down->val == EMPTY){
             current->down->val = current->val;
             if (queue_enqueue(&q, x, y+1)) {
                 return -1;
             }
         }
-        if (current->left && current->left->val == -1){
+        if (current->left && current->left->val == EMPTY){
             current->left->val = current->val;
             if (queue_enqueue(&q, x-1, y)) {
                 return -1;
             }
         }
-        if (current->right && current->right->val == -1){
+        if (current->right && current->right->val == EMPTY){
             current->right->val = current->val;
             if (queue_enqueue(&q, x+1, y)) {
                 return -1;
@@ -98,7 +105,8 @@ int place_paths_and_buildings(map *m) {
         center = mart = 1;
     } else {
         double p;
-        if (d < 200) {
+        if (d == 200) p = 100;
+        else if (d < 200) {
             p = ((-45.0 * d) / 200.0 + 50.0) / 100.0;
         } else {
             p = 0.05;
@@ -163,9 +171,10 @@ int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, i
             x = y;
             y = tmp;
         }
-    } while ( y <= 0 || y >= HEIGHT - 2 || x <= 0 || x >= WIDTH - 2 ||
-        m->tiles[y][x].val == PATH || m->tiles[y+1][x+1].val == PATH || 
-        m->tiles[y][x].val == POKECENTER || m->tiles[y+1][x+1].val == POKECENTER);
+    } while (y <= 0 || y >= HEIGHT - 2 || x <= 0 || x >= WIDTH - 2 ||
+             m->tiles[y][x].val == PATH || m->tiles[y+1][x+1].val == PATH ||
+             m->tiles[y][x].val == POKECENTER || m->tiles[y][x].val == POKEMART ||
+             m->tiles[y+1][x+1].val == POKECENTER || m->tiles[y+1][x+1].val == POKEMART);
 
     m->tiles[y][x].val = m->tiles[y][x+1].val = m->tiles[y+1][x].val = m->tiles[y+1][x+1].val = VAL;
 
@@ -209,6 +218,8 @@ int print_map(map *m) {
                 case POKEMART:
                     c = 'M';
                     break;
+                case EMPTY:
+                    c = '\0';
                 }
             }
             printf("%c", c);
