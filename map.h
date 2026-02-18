@@ -3,21 +3,30 @@
 
 #define HEIGHT 21
 #define WIDTH 80
-// #define HEIGHT 10
-// #define WIDTH 10
-#define TERRAIN_COUNT 6 // Number of terrain elements excluding the path.
 
 enum terrain_type{
     EMPTY = -1,
+    GATE,
     PATH,
     CLEARING,
     TALL_GRASS,
     ARCTIC,
     LAKE,
     FOREST,
-    BOULDER,
+    MOUNTAIN,
     POKECENTER,
-    POKEMART
+    POKEMART,
+    BOULDER,
+    NUM_TERRAINS
+};
+
+enum npc_type {
+    PC = 0,
+    HIKER,
+    RIVAL,
+    SWIMMER,
+    OTHER,
+    NUM_NPCS
 };
 
 typedef struct tile{
