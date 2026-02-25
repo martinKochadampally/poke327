@@ -19,14 +19,18 @@
     @ - Player Character
 */
 int main(int argc, char *argv[]) {
-    map *world[401][401] = {{NULL}};
+    world *w;
     queue visited;
     int y, x;
     char input[20];
     int new_x_pos, new_y_pos;
 
-    srand(time(NULL));
+    if (!( w = malloc(sizeof(world)))) return 1;
+    if (world_init(&w)) return -1;
+
     queue_init(&visited);
+
+    srand(time(NULL));
     
     input[0] = 'f';
     new_x_pos = 0;
@@ -42,13 +46,13 @@ int main(int argc, char *argv[]) {
         else if (input[0] == 'e' && x < 400) x++;
         else if (input[0] == 'w' && x > 0) x--;
         else {
-            printf("Invalid command or edge of world reached!\n");
+            printf("Invalid command or edge of w reached!\n");
         }
 
-        if (!world[y][x]) {
-            world[y][x] = malloc(sizeof (map));
+        if (!w->maps[y][x]) {
+            w->maps[y][x] = malloc(sizeof (map));
 
-            if (!world[y][x]) {
+            if (!w->maps[y][x]) {
                 fprintf(stderr, "Malloc failed.");
                 return -1;
             }
@@ -57,46 +61,46 @@ int main(int argc, char *argv[]) {
                 return -1;
             }
 
-            init_map(world[y][x], x, y);
+            init_map(w->maps[y][x], x, y);
 
             // Check north.
-            if (y > 0 && world[y - 1][x] != NULL) {
-                world[y][x]->pN = world[y - 1][x]->pS;
+            if (y > 0 && w->maps[y - 1][x] != NULL) {
+                w->maps[y][x]->pN = w->maps[y - 1][x]->pS;
             } else {
-                world[y][x]->pN = 4 + rand() % (WIDTH - 8);
+                w->maps[y][x]->pN = 4 + rand() % (WIDTH - 8);
             }
 
             // Check south.
-            if (y < 400 && world[y + 1][x] != NULL) {
-                world[y][x]->pS = world[y + 1][x]->pN;
+            if (y < 400 && w->maps[y + 1][x] != NULL) {
+                w->maps[y][x]->pS = w->maps[y + 1][x]->pN;
             } else {
-                world[y][x]->pS = 4 + rand() % (WIDTH - 8);
+                w->maps[y][x]->pS = 4 + rand() % (WIDTH - 8);
             }
 
             // Check west.
-            if (x > 0 && world[y][x - 1] != NULL) {
-                world[y][x]->pW = world[y][x - 1]->pE;
+            if (x > 0 && w->maps[y][x - 1] != NULL) {
+                w->maps[y][x]->pW = w->maps[y][x - 1]->pE;
             } else {
-                world[y][x]->pW = 4 + rand() % (HEIGHT - 8);
+                w->maps[y][x]->pW = 4 + rand() % (HEIGHT - 8);
             }
 
             // Check East.
-            if (x < 400 && world[y][x + 1] != NULL) {
-                world[y][x]->pE = world[y][x + 1]->pW;
+            if (x < 400 && w->maps[y][x + 1] != NULL) {
+                w->maps[y][x]->pE = w->maps[y][x + 1]->pW;
             } else {
-                world[y][x]->pE = 4 + rand() % (HEIGHT - 8);
+                w->maps[y][x]->pE = 4 + rand() % (HEIGHT - 8);
             }
 
-            if (seed_map(world[y][x])) {
+            if (seed_map(w->maps[y][x])) {
                 fprintf(stderr, "Seeding failed.");
                 return -1;
             }
             
-            place_paths_and_buildings(world[y][x]);
+            place_paths_and_buildings(w->maps[y][x]);
 
         }
 
-        print_map(world[y][x]);
+        print_map(w->maps[y][x]);
 
         printf("Enter a command (n, s, e, w, f <x> <y>, q): ");
 
@@ -118,8 +122,14 @@ int main(int argc, char *argv[]) {
     }
 
     while (!queue_dequeue(&visited, &x, &y)) {
-        free(world[y][x]);
+        free(w->maps[y][x]);
     }
+
+    queue_destroy(&visited);
+
+    world_destoy(&w);
+
+    free(w);
 
     return 0;
 }
