@@ -1,15 +1,29 @@
-* 2026-02-11 22:56 | Updated readme and changelog.
-* 2026-02-11 22:42 | I finished the movement and probability for the buildings code. I ran into a major bug when i was trying to move. When moving east and west the paths werent lining up, however, i figured out the issue. The problem was I was placing the roads wrong. I was placing roads from the east gates position and ending at the west gates, when it should have been the other way around.
-* 2026-02-09 19:45 | Finished place_buldings code. Now I can move onto assignment-1.02
-* 2026-02-09 16:29 | I figured out the problem! I was never instantiating the gates, so the compiler didn't know what those values where. It has now been fixed. Now I will be moving onto the building code.
-* 2026-02-09 15:45 | I made a new c file called map.c, so that I can make a map data structure, and so I have been baisically redoing the assignment 1.01. In implementing it i have run into a few segmentation faults, and I am currently stuck on one for the path placing code. After I finish implementing this and the place buildings code, I will delete the old terrain.c and .h files and then move on to the world code.
-* 2026-02-06 13:05 | Ported git history into the CHANGELOG file.
-* 2026-02-04 14:12 | Cleaned up some code and added comments and README file.
-* 2026-02-04 01:39 | Finished up everything. The seeding wasnt working because I mixed up my index variables for the 2D array. Initially I had decided to seed after putting the roads in, however, this led to there being empy spots inbetween the roads, so I fixed this by adding roads after seeding map. Then I randomly picked a spot along the road and add the pokemart on the vertical road and the pokemon center on the horizontal one. Now everything seems to be working.
-* 2026-02-03 12:38 | There seems to be an infinite loop in my seeding algorithim. I have completed the queue.
-* 2026-01-31 20:40 | Deleted src and bin folders because they just over complicate things.
-* 2026-01-31 20:10 | I have finished implementing the seeding code for the map terrain, but inorder to test it I have to finish the code for queue.c, so that will be what I am doing next.
-* 2026-01-31 01:04 | working on making a queue. i will finish it tommorow.
-* 2026-01-30 15:37 | I ran in to a bug when trying to run my code. It was returning -1 because I accidently put a ! mark before the function name in the if statment.
-* 2026-01-30 00:05 | Added a Makefile, a readme and a changelog. I also starting working on ./src/main with a table of size 21x80 and created the function intitialize_map.
-* 2026-01-29 23:39 | Getting started on assignment 1.01
+2026-02-25 : Finished updating the README, now moving to the CHANGELOG.
+2026-02-25 : Finished the commenting out the looping code in main and I add the code to run Dijikstra's. I was initially haveing trouble passing in pointers to my methods, which I later fixed when 
+I reaslised I need to use double pointers and then pass in the address of the pointer. I also ran into an error when I was trying to compile the code after adding the header file for the dijikstra's 
+code, however, after experementing around, I was able to fix this by moving the reference table (a table that holds pointers to all items currently in the heap) from the header file into the 
+dijikstras.c file and then adding a declaration in the header file. No I will move to updating the README and CHANGELOG and possibly add some comments.
+2026-02-25 : Finally finished implementing the fib heap and dijikstras.
+2026-02-17 : Merge pull request #1 from martinKochadampally/assignment-1.02
+2026-02-17 : Added the cost table given to us in a new dijikstras.c file. I also changed the values in the enum for the terrain types and a new enum called npc_type so I can easily calculate the cost. 
+I may have to change the numbering for the npc_type again since it may cause problems printing later on.
+2026-02-16 : I found a bug. I forgot to ensure that a building should be garunteed at (0,0), so i added made probability of a building placed at 0,0 as a 100, fixing the issue.
+2026-02-11 : Updated readme and changelog.
+2026-02-11 : I finished the movement and probability for the buildings code. I ran into a major bug when i was trying to move. When moving east and west the paths werent lining up, however, i figured out 
+the issue. The problem was I was placing the roads wrong. I was placing roads from the east gates position and ending at the west gates, when it should have been the other way around.
+2026-02-09 : Finished place_buldings code. Now I can move onto assignment-1.02
+2026-02-09 : I figured out the problem! I was never instantiating the gates, so the compiler didn't know what those values where. It has now been fixed. Now I will be moving onto the building code.
+2026-02-09 : I made a new c file called map.c, so that I can make a map data structure, and so I have been baisically redoing the assignment 1.01. In implementing it i have run into a few segmentation faults, 
+and I am currently stuck on one for the path placing code. After I finish implementing this and the place buildings code, I will delete the old terrain.c and .h files and then move on to the world code.
+2026-02-06 : Ported git history into the CHANGELOG file.
+2026-02-04 : Cleaned up some code and added comments and README file.
+2026-02-04 : Finished up everything. The seeding wasnt working because I mixed up my index variables for the 2D array. Initially I had decided to seed after putting the roads in, however, this led to there 
+bein empy spots inbetween the roads, so I fixed this by adding roads after seeding map. Then I randomly picked a spot along the road and add the pokemart on the vertical road and the pokemon center on the 
+horizontal one. Now everything seems to be working.
+2026-02-03 : There seems to be an infinite loop in my seeding algorithim. I have completed the queue.
+2026-01-31 : Deleted src and bin folders because they just over complicate things.
+2026-01-31 : I have finished implementing the seeding code for the map terrain, but inorder to test it I have to finish the code for queue.c, so that will be what I am doing next.
+2026-01-31 : working on making a queue. i will finish it tommorow.
+2026-01-30 : I ran in to a bug when trying to run my code. It was returning -1 because I accidently put a ! mark before the function name in the if statment.
+2026-01-30 : Added a Makefile, a readme and a changelog. I also starting working on ./src/main with a table of size 21x80 and created the function intitialize_map.
+2026-01-29 : Getting started on assignment 1.01
