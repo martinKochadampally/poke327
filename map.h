@@ -17,7 +17,6 @@ enum terrain_type{
     POKECENTER,
     POKEMART,
     BOULDER,
-    NUM_TERRAINS
 };
 
 enum char_type {
@@ -42,10 +41,17 @@ typedef struct terrain{
     enum terrain_type val;
 } terrain;
 
-typedef struct
-{
-    struct pc *p;
-    struct npc *npc;
+typedef struct pc{
+    int strength;
+} npc;
+
+typedef struct npc{
+    int strength;
+} pc;
+
+typedef struct {
+    pc *p;
+    npc *npc;
     enum char_type type;
     char symbol;
     int seq_num;
@@ -58,6 +64,7 @@ typedef struct {
     terrain t[HEIGHT][WIDTH];
     character *ch[HEIGHT][WIDTH];
     int pN, pS, pE, pW;
+    int WE_intersection, NS_intersection;
     int pos_x, pos_y; // Location of the map in the world.
 } map;
 
@@ -67,12 +74,15 @@ typedef struct {
     int (*rival_dist_map)[WIDTH];
 } world;
 
-int init_world(world *w);
+int world_init(world *w);
+void world_destroy(world *w);
 int init_map(map *m, int pos_x, int pos_y);
 int seed_map(map *m);
 int place_paths_and_buildings(map *m);
 int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, int upperbound);
+int place_pc(map *m, character **player);
 int print_map(map *m);
+
 
 
 #endif

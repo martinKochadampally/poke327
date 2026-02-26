@@ -3,8 +3,9 @@
 #include <time.h>
 
 #include "queue.h"
-#include "map.h"
+#include "dijikstras.h"
 
+void print_dist_map(int dist_map[HEIGHT][WIDTH]);
 
 /*
     % - immovable boulders and mountainous regions.
@@ -21,35 +22,39 @@
 int main(int argc, char *argv[]) {
     world *w;
     queue visited;
+    character *player = NULL;
     int y, x;
-    char input[20];
-    int new_x_pos, new_y_pos;
+    // char input[20];
+    // int new_x_pos, new_y_pos;
 
     if (!( w = malloc(sizeof(world)))) return 1;
-    if (world_init(&w)) return -1;
+    if (world_init(w)) return -1;
 
     queue_init(&visited);
 
     srand(time(NULL));
     
-    input[0] = 'f';
-    new_x_pos = 0;
-    new_y_pos = 0;
+    // input[0] = 'f';
+    // new_x_pos = 0;
+    // new_y_pos = 0;
+
+    y = x = 200;
     
-    while (input[0] != 'q') {
-        if (input[0] == 'f' ) {
-            x = new_x_pos + 200;
-            y = new_y_pos + 200;
-        } 
-        else if (input[0] == 'n' && y > 0) y--;
-        else if (input[0] == 's' && y < 400) y++;
-        else if (input[0] == 'e' && x < 400) x++;
-        else if (input[0] == 'w' && x > 0) x--;
-        else {
-            printf("Invalid command or edge of w reached!\n");
-        }
+    // while (input[0] != 'q') {
+    //     if (input[0] == 'f' ) {
+    //         x = new_x_pos + 200;
+    //         y = new_y_pos + 200;
+    //     } 
+    //     else if (input[0] == 'n' && y > 0) y--;
+    //     else if (input[0] == 's' && y < 400) y++;
+    //     else if (input[0] == 'e' && x < 400) x++;
+    //     else if (input[0] == 'w' && x > 0) x--;
+    //     else {
+    //         printf("Invalid command or edge of w reached!\n");
+    //     }
 
         if (!w->maps[y][x]) {
+            
             w->maps[y][x] = malloc(sizeof (map));
 
             if (!w->maps[y][x]) {
@@ -97,29 +102,40 @@ int main(int argc, char *argv[]) {
             }
             
             place_paths_and_buildings(w->maps[y][x]);
-
+            if (place_pc(w->maps[y][x], &player)) {
+                fprintf(stderr, "place_pc failed\n");
+                return -1;
+            }
         }
 
         print_map(w->maps[y][x]);
+        dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[player->y][player->x], HIKER);
+        dijiksra(w->rival_dist_map, w->maps[y][x], &w->maps[y][x]->t[player->y][player->x], RIVAL);
 
-        printf("Enter a command (n, s, e, w, f <x> <y>, q): ");
+    //     printf("Enter a command (n, s, e, w, f <x> <y>, q): ");
 
-        if (!fgets(input, sizeof (input), stdin)) {
-            return -1;
-        }
+    //     if (!fgets(input, sizeof (input), stdin)) {
+    //         return -1;
+    //     }
 
-        if (input[0] == 'f') {
-            int temp_x, temp_y;
-            if (sscanf(input, "f %d %d", &temp_x, &temp_y) == 2) {
-                if (temp_x >= -200 && temp_x <= 200 && temp_y >= -200 && temp_y <= 200) {
-                    new_x_pos = temp_x;
-                    new_y_pos = temp_y;
-                } else {
-                    printf("Out of bounds! Stay between -200 and 200.\n");
-                }
-            }
-        }
-    }
+    //     if (input[0] == 'f') {
+    //         int temp_x, temp_y;
+    //         if (sscanf(input, "f %d %d", &temp_x, &temp_y) == 2) {
+    //             if (temp_x >= -200 && temp_x <= 200 && temp_y >= -200 && temp_y <= 200) {
+    //                 new_x_pos = temp_x;
+    //                 new_y_pos = temp_y;
+    //             } else {
+    //                 printf("Out of bounds! Stay between -200 and 200.\n");
+    //             }
+    //         }
+    //     }
+    // }
+    
+    printf("Hiker Distance Map:");
+    print_dist_map(w->hiker_dist_map); 
+    printf("Rival Distance Map:");
+    print_dist_map(w->rival_dist_map); 
+
 
     while (!queue_dequeue(&visited, &x, &y)) {
         free(w->maps[y][x]);
@@ -127,9 +143,26 @@ int main(int argc, char *argv[]) {
 
     queue_destroy(&visited);
 
-    world_destoy(&w);
+    free(player->p);
+    free(player);
+
+    world_destroy(w);
 
     free(w);
 
     return 0;
+}
+
+void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
+    int x, y;
+    for (y = 0; y < HEIGHT; y++) {
+        for (x = 0; x < WIDTH; x++) {
+            if (dist_map[y][x] == __INT_MAX__) {
+                printf("   ");
+            } else {
+                printf("%02d ", dist_map[y][x] % 100);
+            }
+        }
+        printf("\n");
+    }
 }

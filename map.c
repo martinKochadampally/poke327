@@ -16,9 +16,17 @@ int world_init(world *w) {
     w->hiker_dist_map = malloc(sizeof(int[HEIGHT][WIDTH]));
     w->rival_dist_map = malloc(sizeof(int[HEIGHT][WIDTH]));
     if (!w->hiker_dist_map || !w->rival_dist_map) return -1;
+    return 0;
 }
 
 void world_destroy(world *w) {
+    int i, j;
+    for (i = 0; i < HEIGHT; i++) {
+        for (j = 0; j < WIDTH; j++) {
+            w->hiker_dist_map[i][j] = 0;
+            w->rival_dist_map[i][j] = 0;
+        }
+    }
     free(w->hiker_dist_map);
     free(w->rival_dist_map);
 }
@@ -29,6 +37,8 @@ int init_map(map *m, int pos_x, int pos_y) {
 
     for (y = 0; y < HEIGHT; y++) {
         for (x = 0; x < WIDTH; x++) {
+            m->t[y][x].x = x; //
+            m->t[y][x].y = y; //
             m->t[y][x].val = (!x || !y || x == WIDTH-1 || y == HEIGHT-1)? BOULDER : EMPTY;
             m->ch[y][x] = NULL;
 
@@ -53,6 +63,9 @@ int init_map(map *m, int pos_x, int pos_y) {
     return 0;
 }
 
+/*
+
+*/
 int seed_map(map *m) {
     int i, x, y, size;
     queue q;
@@ -171,6 +184,9 @@ int place_paths_and_buildings(map *m) {
 
     m->t[m->pW][0].val = m->t[m->pE][WIDTH-1].val = m->t[0][m->pN].val = m->t[HEIGHT-1][m->pS].val = GATE;
 
+    m->WE_intersection = intersection1;
+    m->NS_intersection = intersection2;
+
     return 0;
 }
 
@@ -199,6 +215,34 @@ int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, i
     return 0;
 }
 
+
+/*
+ Places the Player Character on the map on the road and connects the given pointer to it;
+*/
+int place_pc(map *m, character **player) {
+    int x;
+
+    if (m->pos_y != 200 || m->pos_x != 200) return -1;
+
+    x = m->WE_intersection + rand()%(WIDTH-2-m->WE_intersection);
+    if (!(*player = malloc(sizeof (character)))) return -1;
+    if (!((*player)->p = malloc(sizeof (pc)))) return -1;
+    (*player)->p->strength = 50;
+    
+    (*player)->symbol = '@';
+    (*player)->npc = NULL;
+    (*player)->type = PC;
+    (*player)->x = x;
+    (*player)->y = m->pE;
+
+    m->ch[m->pE][x] = *player;
+    return 0;
+}
+
+/*
+ Prints the map out if there is no charachter currently
+ occupying that square.
+*/
 int print_map(map *m) {
     int i, j;
     char c;
@@ -210,8 +254,6 @@ int print_map(map *m) {
             }
             else {
                 switch (m->t[i][j].val) {
-                    case EMPTY:
-                        c = ' ';
                     case GATE:
                         c = '#';
                         break;
@@ -244,6 +286,9 @@ int print_map(map *m) {
                         break;
                     case BOULDER:
                         c = '%';
+                        break;
+                    default:
+                        c = ' ';
                         break;
                 }
             }

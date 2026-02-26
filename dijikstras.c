@@ -1,8 +1,7 @@
 #include <string.h>
 
-#include "map.h"
 #include "heap.h"
-
+#include "dijikstras.h"
 
                       //  GATE,       PATH,       SGRASS,     TGRASS,     ARCTIC,     LAKE,       FOREST,     MNTN,       PCNTR,      PMART,      BOULDER
 int cost_table[5][11] = {{10         ,10         ,10         ,20         ,25         ,__INT_MAX__,__INT_MAX__,__INT_MAX__,10         ,10         ,__INT_MAX__}, //PC
@@ -22,14 +21,13 @@ int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_typ
     npc %= 10;
     int cost, new_cost;
 
-    int x_vals[] = {-1,-0, 1, };
-    int y_vals[] = {-1,-1,-1, };
-
     heap_init(&h);
 
+    // Sets all squares to a weight of infinity and adds the
+    // player's square to the map.
     for (y = 0; y < HEIGHT; y++) {
         for (x = 0; x < WIDTH; x++) {
-            if (pc_pos->x == x && pc_pos->y == y) {
+            if ((pc_pos)->x == x && (pc_pos)->y == y) {
                 heap_insert(&h, &m->t[y][x], 0);
                 dist_map[y][x] =  0;
                 continue;
@@ -38,6 +36,8 @@ int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_typ
         }
     }
 
+    // Extracts the current min and adds its neighbours to the heap, or 
+    // decreases the key of the node if it is already in the heap.
     while (!heap_size(&h, &size) && size) {
         heap_extract_min(&h, &t, &cost);
 
@@ -134,6 +134,7 @@ int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_typ
         }
     }
 
+    // Recursively destroys the heap.
     heap_destroy(&h);
 
     return 0;

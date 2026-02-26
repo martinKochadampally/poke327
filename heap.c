@@ -1,16 +1,14 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "map.h"
 #include "heap.h"
 
 heap_item *ref_table[HEIGHT][WIDTH];
 
-int heap_init(heap *h){
-    int i,j;
-
+void heap_init(heap *h){
     h->min = NULL;
     h->num_elements = 0;
-
     memset(ref_table, 0, sizeof(ref_table));
 }
 
@@ -65,14 +63,101 @@ Returns 0 for a sucess.
 */
 int heap_min(heap *h, terrain **t){
     if (!h) return -1;
-    *t = h->min;
+    *t = h->min->t;
     return 0;
 }
 
+/*
+Makes y a child of x.
+*/
+void heap_merge(heap *h, heap_item *y, heap_item *x) {
+    y->left->right = y->right;
+    y->right->left = y->left;
 
+    y->parent = x;
+    if (x->children == NULL) {
+        x->children = y;
+        y->left = y;
+        y->right = y;
+    } else {
+        y->left = x->children;
+        y->right = x->children->right;
+        x->children->right->left = y;
+        x->children->right = y;
+    }
+    
+    x->degree++;
+    y->mark = 0;
+}
+
+/*
+This code ensures there is one root node of each
+degree.
+*/
+int refactor(heap *h) {
+    heap_item *deg_list[32] = {NULL};
+    heap_item *start, *node, *x, *y, *tmp;
+    int d;
+
+    if (!(start = h->min)) return -1;
+
+    int num_roots = 0;
+
+    heap_item *roots[h->num_elements];
+    node = start;
+    do {
+        roots[num_roots++] = node;
+        node = node->right;
+    } while (node != start);
+
+    for (int i = 0; i < num_roots; i++) {
+        x = roots[i];
+        d = x->degree;
+        
+        while (deg_list[d] != NULL) {
+            y = deg_list[d];
+            if (x->key > y->key) {
+                tmp = x;
+                x = y;
+                y = tmp;
+            }
+            heap_merge(h, y, x);
+            deg_list[d] = NULL;
+            d++;
+        }
+        deg_list[d] = x;
+    }
+
+    // Rebuild the root list from the A array and find the new min
+    h->min = NULL;
+    for (int i = 0; i < 32; i++) {
+        if (deg_list[i] != NULL) {
+            if (h->min == NULL) {
+                h->min = deg_list[i];
+                deg_list[i]->left = deg_list[i];
+                deg_list[i]->right = deg_list[i];
+            } else {
+                deg_list[i]->left = h->min;
+                deg_list[i]->right = h->min->right;
+                h->min->right->left = deg_list[i];
+                h->min->right = deg_list[i];
+                if (deg_list[i]->key < h->min->key) {
+                    h->min = deg_list[i];
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+/*
+Extracts the node with the minimum key, then finds the new 
+min after reorganizing the heap so there is only one node in
+the root list of a cetain degree.
+*/
 int heap_extract_min(heap *h, terrain **t, int *cost){
     heap_item *old_min, *curr, *first, *last;
-    int i;
 
     if (!h || h->num_elements == 0 || !(old_min = h->min)) return -1;
 
@@ -117,111 +202,6 @@ int heap_extract_min(heap *h, terrain **t, int *cost){
     return 0;
 }
 
-int refactor(heap *h) {
-    heap_item *deg_list[32] = {NULL};
-    heap_item *start, *node, *x, *y, *tmp;
-    int d;
-
-    if (!(start = h->min)) return -1;
-
-    int num_roots = 0;
-
-    heap_item *roots[h->num_elements];
-    node = start;
-    do {
-        roots[num_roots++] = node;
-        node = node->right;
-    } while (node != start);
-
-    for (int i = 0; i < num_roots; i++) {
-        x = roots[i];
-        d = x->degree;
-        
-        while (deg_list[d] != NULL) {
-            heap_item *y = deg_list[d];
-            if (x->key > y->key) {
-                tmp = x;
-                x = y;
-                y = tmp;
-            }
-            heap_merge(h, y, x);
-            deg_list[d] = NULL;
-            d++;
-        }
-        deg_list[d] = x;
-    }
-
-    // Rebuild the root list from the A array and find the new min
-    h->min = NULL;
-    for (int i = 0; i < 32; i++) {
-        if (deg_list[i] != NULL) {
-            if (h->min == NULL) {
-                h->min = deg_list[i];
-                deg_list[i]->left = deg_list[i];
-                deg_list[i]->right = deg_list[i];
-            } else {
-                deg_list[i]->left = h->min;
-                deg_list[i]->right = h->min->right;
-                h->min->right->left = deg_list[i];
-                h->min->right = deg_list[i];
-                if (deg_list[i]->key < h->min->key) {
-                    h->min = deg_list[i];
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
-/*
-Makes y a child of x.
-*/
-void heap_merge(heap *h, heap_item *y, heap_item *x) {
-    y->left->right = y->right;
-    y->right->left = y->left;
-
-    y->parent = x;
-    if (x->children == NULL) {
-        x->children = y;
-        y->left = y;
-        y->right = y;
-    } else {
-        y->left = x->children;
-        y->right = x->children->right;
-        x->children->right->left = y;
-        x->children->right = y;
-    }
-    
-    x->degree++;
-    y->mark = 0;
-}
-
-
-int decrease_key(heap *h, terrain *t, int new_key) {
-    heap_item *node, *parent;
-
-    if (!h || !t || !(node = ref_table[t->y][t->x])) {
-        return -1;
-    }
-
-    if (new_key > node->key) return -1;
-
-    node->key = new_key;
-    parent = node->parent;
-
-    if (parent != NULL && node->key < parent->key) {
-        cut(h, node, parent);
-        recursive_cut(h, parent);
-    }
-
-    if (node->key < h->min->key) {
-        h->min = node;
-    }
-
-    return 0;
-}
-
 void cut(heap *h, heap_item *node, heap_item *parent) {
     if (node->right == node) {
         parent->children = NULL;
@@ -256,6 +236,30 @@ void recursive_cut(heap *h, heap_item *parent) {
     }
 }
 
+int decrease_key(heap *h, terrain *t, int new_key) {
+    heap_item *node, *parent;
+
+    if (!h || !t || !(node = ref_table[t->y][t->x])) {
+        return -1;
+    }
+
+    if (new_key > node->key) return -1;
+
+    node->key = new_key;
+    parent = node->parent;
+
+    if (parent != NULL && node->key < parent->key) {
+        cut(h, node, parent);
+        recursive_cut(h, parent);
+    }
+
+    if (node->key < h->min->key) {
+        h->min = node;
+    }
+
+    return 0;
+}
+
 
 
 /*
@@ -282,21 +286,23 @@ int heap_size(heap *h, int *size){
 
 
 void heap_item_destroy_recursive(heap_item *n) {
-    heap_item *start, *curr, *next;
+    heap_item *curr, *next;
     if (!n) return;
 
-    start = curr = n;
-    
-    do {
-        next = curr->right;
+    n->left->right = NULL; 
 
+    curr = n;
+    next = NULL;
+
+    while (curr) {
+        next = curr->right;
         if (curr->children) {
             heap_item_destroy_recursive(curr->children);
         }
         ref_table[curr->t->y][curr->t->x] = NULL;
         free(curr);
         curr = next;
-    } while (curr != start);
+    }
 }
 
 void heap_destroy(heap *h) {
