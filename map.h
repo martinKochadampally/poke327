@@ -17,11 +17,10 @@ enum terrain_type{
     POKECENTER,
     POKEMART,
     BOULDER,
-    NUM_TERRAINS
 };
 
-enum npc_type {
-    PC = 0,
+enum char_type {
+    PC = 10,
     HIKER,
     RIVAL,
     SWIMMER,
@@ -29,29 +28,61 @@ enum npc_type {
     NUM_NPCS
 };
 
-typedef struct tile{
-    struct tile *top_left;
-    struct tile *up;
-    struct tile *top_right;
-    struct tile *right;
-    struct tile *bottom_right;
-    struct tile *down;
-    struct tile *bottom_left;
-    struct tile *left;
+typedef struct terrain{
+    struct terrain *NW;
+    struct terrain *N;
+    struct terrain *NE;
+    struct terrain *E;
+    struct terrain *SE;
+    struct terrain *S;
+    struct terrain *SW;
+    struct terrain *W;
+    int x, y;
     enum terrain_type val;
-} tile;
+} terrain;
+
+typedef struct pc{
+    int strength;
+} npc;
+
+typedef struct npc{
+    int strength;
+} pc;
 
 typedef struct {
-    tile tiles[HEIGHT][WIDTH];
+    pc *p;
+    npc *npc;
+    enum char_type type;
+    char symbol;
+    int seq_num;
+    int next_turn;
+    int x, y;
+} character;
+
+
+typedef struct {
+    terrain t[HEIGHT][WIDTH];
+    character *ch[HEIGHT][WIDTH];
     int pN, pS, pE, pW;
+    int WE_intersection, NS_intersection;
     int pos_x, pos_y; // Location of the map in the world.
 } map;
 
+typedef struct {
+    map *maps[401][401];
+    int (*hiker_dist_map)[WIDTH]; 
+    int (*rival_dist_map)[WIDTH];
+} world;
+
+int world_init(world *w);
+void world_destroy(world *w);
 int init_map(map *m, int pos_x, int pos_y);
 int seed_map(map *m);
 int place_paths_and_buildings(map *m);
 int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, int upperbound);
+int place_pc(map *m, character **player);
 int print_map(map *m);
+
 
 
 #endif
