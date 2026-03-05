@@ -229,6 +229,7 @@ int place_pc(map *m, character **player) {
     if (!((*player)->p = malloc(sizeof (pc)))) return -1;
     (*player)->p->strength = 50;
     
+    (*player)->next_turn = 0;
     (*player)->symbol = '@';
     (*player)->npc = NULL;
     (*player)->type = PC;

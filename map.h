@@ -53,7 +53,7 @@ typedef struct {
     int seq_num;
     int next_turn;
     int x, y;
-    int dir[1];
+    int dir[2];
     enum char_type type;
 } character;
 
@@ -79,7 +79,6 @@ int seed_map(map *m);
 int place_paths_and_buildings(map *m);
 int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, int upperbound);
 int place_pc(map *m, character **player);
-int place_npcs(map *m, int NUM_NPCs);
 int print_map(map *m);
 
 
