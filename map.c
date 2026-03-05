@@ -64,7 +64,7 @@ int init_map(map *m, int pos_x, int pos_y) {
 }
 
 /*
-
+    Seeds the given map m.
 */
 int seed_map(map *m) {
     int i, x, y, size;
@@ -217,7 +217,7 @@ int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, i
 
 
 /*
- Places the Player Character on the map on the road and connects the given pointer to it;
+    Places the Player Character on the map on the road and connects the given pointer to it;
 */
 int place_pc(map *m, character **player) {
     int x;
@@ -238,6 +238,7 @@ int place_pc(map *m, character **player) {
     m->ch[m->pE][x] = *player;
     return 0;
 }
+
 
 /*
  Prints the map out if there is no charachter currently

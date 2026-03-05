@@ -7,7 +7,7 @@
 
 typedef struct heap_item
 {
-    terrain *t;
+    void *t;
     struct heap_item *left, *right, *children, *parent;
     int degree;
     int key;
@@ -21,11 +21,10 @@ typedef struct
 } heap;
 
 void heap_init(heap *h);
-int heap_insert(heap *h, terrain *t, int key);
-int heap_min(heap *h, terrain **t);
-int heap_extract_min(heap *h, terrain **t, int *cost);
-int decrease_key(heap *h, terrain *t, int new_key);
-int is_in_heap(heap *h, terrain *t);
+heap_item* heap_insert(heap *h, void *t, int key);
+int heap_min(heap *h, void **t);
+int heap_extract_min(heap *h, void **t, int *cost);
+int decrease_key(heap *h, heap_item *node, int new_key);
 int heap_size(heap *h, int *size);
 void heap_destroy(heap *h); 
 

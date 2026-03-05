@@ -25,18 +25,15 @@ enum char_type {
     RIVAL,
     SWIMMER,
     OTHER,
-    NUM_NPCS
+    PACER = 24,
+    WANDERER = 34,
+    SENTRY = 44,
+    EXPLORER = 54
 };
 
 typedef struct terrain{
-    struct terrain *NW;
-    struct terrain *N;
-    struct terrain *NE;
-    struct terrain *E;
-    struct terrain *SE;
-    struct terrain *S;
-    struct terrain *SW;
-    struct terrain *W;
+    struct terrain *NW, *N, *NE, *E;
+    struct terrain *SE, *S, *SW, *W;
     int x, y;
     enum terrain_type val;
 } terrain;
@@ -52,11 +49,12 @@ typedef struct npc{
 typedef struct {
     pc *p;
     npc *npc;
-    enum char_type type;
     char symbol;
     int seq_num;
     int next_turn;
     int x, y;
+    int dir[1];
+    enum char_type type;
 } character;
 
 
@@ -81,6 +79,7 @@ int seed_map(map *m);
 int place_paths_and_buildings(map *m);
 int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, int upperbound);
 int place_pc(map *m, character **player);
+int place_npcs(map *m, int NUM_NPCs);
 int print_map(map *m);
 
 
