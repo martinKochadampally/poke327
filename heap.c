@@ -15,13 +15,13 @@ void heap_init(heap *h){
 /*
 This method lazily inserts items into the heap taking
 O(1) time.
-Returns -1 if malloc fails.
+Returns NULL if malloc fails.
 */
-int heap_insert(heap *h, terrain *t, int key){
+heap_item* heap_insert(heap *h, void *t, int key){
     heap_item *tmp;
 
     // Checking if malloc returns null.
-    if (!(tmp = malloc(sizeof (*tmp)))) return -1;
+    if (!(tmp = malloc(sizeof (*tmp)))) return NULL;
 
 
     tmp->t = t;
@@ -48,20 +48,19 @@ int heap_insert(heap *h, terrain *t, int key){
         }
     }
 
-    ref_table[t->y][t->x] = tmp;
     h->num_elements++;
 
-    return 0;
+    return tmp;
 }
 
 /*
 Stores the smallest value in the heap in the second param
-terrain t, without removing it.
+void t, without removing it.
 
 Returns -1 if the given ptr to the heap is NULL.
 Returns 0 for a sucess.
 */
-int heap_min(heap *h, terrain **t){
+int heap_min(heap *h, void **t){
     if (!h) return -1;
     *t = h->min->t;
     return 0;
@@ -156,7 +155,7 @@ Extracts the node with the minimum key, then finds the new
 min after reorganizing the heap so there is only one node in
 the root list of a cetain degree.
 */
-int heap_extract_min(heap *h, terrain **t, int *cost){
+int heap_extract_min(heap *h, void **t, int *cost){
     heap_item *old_min, *curr, *first, *last;
 
     if (!h || h->num_elements == 0 || !(old_min = h->min)) return -1;
@@ -186,8 +185,6 @@ int heap_extract_min(heap *h, terrain **t, int *cost){
         old_min->left->right = old_min->right;
         old_min->right->left = old_min->left;
     }
-
-    ref_table[(*t)->y][(*t)->x] = NULL;
 
     if (old_min == old_min->right) {
         h->min = NULL;
@@ -236,14 +233,12 @@ void recursive_cut(heap *h, heap_item *parent) {
     }
 }
 
-int decrease_key(heap *h, terrain *t, int new_key) {
-    heap_item *node, *parent;
+int decrease_key(heap *h, heap_item *node, int new_key) {
+    heap_item *parent;
 
-    if (!h || !t || !(node = ref_table[t->y][t->x])) {
+    if (!h || !node || new_key > node->key) {
         return -1;
     }
-
-    if (new_key > node->key) return -1;
 
     node->key = new_key;
     parent = node->parent;
@@ -257,17 +252,6 @@ int decrease_key(heap *h, terrain *t, int new_key) {
         h->min = node;
     }
 
-    return 0;
-}
-
-
-
-/*
-Returns 1 (True) if t is in the heap and 0 (False)
-if not;
-*/
-int is_in_heap(heap *h, terrain *t) {
-    if (ref_table[t->y][t->x]) return 1;
     return 0;
 }
 
@@ -299,7 +283,6 @@ void heap_item_destroy_recursive(heap_item *n) {
         if (curr->children) {
             heap_item_destroy_recursive(curr->children);
         }
-        ref_table[curr->t->y][curr->t->x] = NULL;
         free(curr);
         curr = next;
     }

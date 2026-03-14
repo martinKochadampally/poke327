@@ -1,5 +1,7 @@
-poke327: queue.o map.o heap.o dijikstras.o poke327.o
-	gcc queue.o map.o heap.o dijikstras.o poke327.o -o poke327
+# poke327: queue.o map.o heap.o dijikstras.o poke327.o
+# 	gcc queue.o map.o heap.o dijikstras.o poke327.o -o poke327
+poke327: queue.o map.o heap.o poke327.o
+	gcc queue.o map.o heap.o poke327.o -o poke327
 
 #-c makes this stop after compiling returning the object file (.o files).
 queue.o: queue.c queue.h
