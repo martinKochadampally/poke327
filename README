@@ -12,7 +12,7 @@ This project is meant to be a Pokemon-like game. There is a 401x401 world map, w
 
 ## Running Instructions
 1. Change directories(cd) into the below folder: 
-Bash ```cd kochadampally_martin.assignment-1.04```
+Bash ```cd kochadampally_martin.assignment-1.05```
 
 2. Clean the folder:
 Bash ```make clean```
