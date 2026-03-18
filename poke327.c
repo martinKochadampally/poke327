@@ -1,3 +1,4 @@
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +17,7 @@ int cost_table[5][11] = {{10         ,10         ,10         ,20         ,25    
                          {__INT_MAX__,10         ,10         ,20         ,25         ,__INT_MAX__,__INT_MAX__,__INT_MAX__,50         ,50         ,__INT_MAX__}};//OTHER
 
 
+void init_terminal(void);
 int place_npcs(map *m, int num_trainers, heap *h);
 void move_npc(map *m, character *c, world *w);
 int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_type npc);
@@ -27,16 +29,31 @@ void print_dist_map(int dist_map[HEIGHT][WIDTH]);
         Takes arg: --numtrainers
 */
 int main(int argc, char *argv[]) {
-    world *w;
-    queue visited;
-    heap char_heap;
-    character *player = NULL;
+    int retval = 0;             // This is what main will return.
+    char *errmsg = NULL;        // If an error occurs, this stores error message.
+
+    // Holds --numtrainers value:
     int NUM_NPCS = 10;
-    int y, x, new_y, new_x, dy, dx;
+    
+    // World Traversing Vars:
+    world *w;                   // Stores out world.
+    queue visited;              // Stores all the maps that we have visited, so that we can free them.
 
-    int retval = 0;
-    char *errmsg = NULL;
+    // User Input Variable:
+    char *input;
 
+    // Movement:
+    map *m;
+    int y, x;
+
+    // Character Movement Vars:
+    heap char_heap;             // Stores all the characters in the current map.
+    character *player = NULL;   // Pointer to the Player Character.
+    character *c;
+    int current_time;
+    int new_y, new_x, dy, dx;
+    
+    // Checks for the -numtrainers tag.
     if (argc == 3 || argc == 1) {
         if (argc == 3) {
             if (!strcmp("--numtrainers", argv[1])) {
@@ -54,128 +71,87 @@ int main(int argc, char *argv[]) {
         goto ret_err;
     }
 
+    // Creates the world.
     if ( !(w = malloc(sizeof (world) )) ) {
         errmsg = "Mallocing world failed.";
         retval = -3;
         goto ret_err;
     }
+
+    // Initializing the world.
     if (world_init(w)) {
         errmsg = "Initializing world faild.";
-        retval = -5;
+        retval = -4;
         goto free_world;
     }
 
+    // Creates a queue;
     queue_init(&visited);
+    // Initializes a heap to keep track of whos turn it is.
     heap_init(&char_heap);
 
     srand(time(NULL));
 
+    // Sets the current world to (0,0).
     y = x = 200;
-    if (!w->maps[y][x]) {
-        w->maps[y][x] = malloc(sizeof (map));
 
-        if (!w->maps[y][x]) {
-            errmsg = "Mallocing a map failed.";
-            retval = -6;
-            goto free_visited_maps;
-        }
-
-        if (queue_enqueue(&visited, x, y)) {
-            errmsg = "Couldn't mark map as visited.";
-            retval = -7;
-            goto free_visited_maps;
-        }
-
-        init_map(w->maps[y][x], x, y);
-
-        // Check north.
-        if (y > 0 && w->maps[y - 1][x] != NULL) {
-            w->maps[y][x]->pN = w->maps[y - 1][x]->pS;
-        } else {
-            w->maps[y][x]->pN = 4 + rand() % (WIDTH - 8);
-        }
-
-        // Check south.
-        if (y < 400 && w->maps[y + 1][x] != NULL) {
-            w->maps[y][x]->pS = w->maps[y + 1][x]->pN;
-        } else {
-            w->maps[y][x]->pS = 4 + rand() % (WIDTH - 8);
-        }
-
-        // Check west.
-        if (x > 0 && w->maps[y][x - 1] != NULL) {
-            w->maps[y][x]->pW = w->maps[y][x - 1]->pE;
-        } else {
-            w->maps[y][x]->pW = 4 + rand() % (HEIGHT - 8);
-        }
-
-        // Check East.
-        if (x < 400 && w->maps[y][x + 1] != NULL) {
-            w->maps[y][x]->pE = w->maps[y][x + 1]->pW;
-        } else {
-            w->maps[y][x]->pE = 4 + rand() % (HEIGHT - 8);
-        }
-
-        if (seed_map(w->maps[y][x])) {
-            errmsg = "Seeding failed.";
-            retval = -8;
-            goto free_visited_maps;
-        }
-        
-        place_paths_and_buildings(w->maps[y][x]);
-        if (place_pc(w->maps[y][x], &player)) {
-            errmsg = "place_pc failed\n";
-            retval = -9;
-            goto free_player;
-        }
+    // Mallocing space for the map.
+    if (!(w->maps[y][x] = malloc(sizeof (map)))) {
+        errmsg = "Mallocing a map failed.";
+        retval = -5;
+        goto free_visited_maps;
     }
-    place_npcs(w->maps[y][x], NUM_NPCS, &char_heap);
-    print_map(w->maps[y][x]);
-    dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[player->y][player->x], HIKER);
-    dijiksra(w->rival_dist_map, w->maps[y][x], &w->maps[y][x]->t[player->y][player->x], RIVAL);
 
+    // Add the map to the queue so we know which worlds we have visited.
+    if (queue_enqueue(&visited, x, y)) {
+        errmsg = "Couldn't mark map as visited.";
+        retval = -6;
+        goto free_visited_maps;
+    }
+    
+    // Initiate the map and its gates depending on the srroundoing maps.
+    init_map(w->maps[y][x], x, y, w->maps[y-1][x], w->maps[y+1][x], w->maps[y][x+1], w->maps[y][x-1]);
+
+    // Seeding the terrain of the map.
+    if (seed_map(w->maps[y][x])) {
+        errmsg = "Seeding failed.";
+        retval = -7;
+        goto free_visited_maps;
+    }
+    
+    // Placing the paths and buildings on the map.
+    place_paths_and_buildings(w->maps[y][x]);
+    if (place_pc(w->maps[y][x], &player)) {
+        errmsg = "place_pc failed\n";
+        retval = -8;
+        goto free_player;
+    }
+
+    // Randomly placing NPCs on the map.
+    place_npcs(w->maps[y][x], NUM_NPCS, &char_heap);
+
+    // Adding each character to a heap keep track of turns.
     heap_insert(&char_heap, player, player->next_turn);
 
-    character *c;
-    int current_time;
-    while (1) {
-        heap_extract_min(&char_heap, (void **)&c, &current_time);
+    // Using NCURSES lib, the following will output PC and NPC movements.
+    init_terminal(); // don't use printf until closing ncurses.
+    input = "Hello World!";
+    while (strcmp("q", input[0])) {
+        printw("Your Input: %s\n", input);
+        printw("Enter 'q' to quit:\n");
+        input  = getch();
+        // for (i = 0; i < WIDTH; i++) {
+        //     for (j = 0; j < HEIGHT; j++) {
 
-        if (c->p) {
-            dx = (rand() % 3) - 1;
-            dy = (rand() % 3) - 1;
-            new_x = c->x + dx;
-            new_y = c->y + dy;
-
-            if (new_y > 0 && new_y < HEIGHT - 1 && new_x > 0 && new_x < WIDTH - 1 && 
-                cost_table[PC%10][w->maps[y][x]->t[new_y][new_x].val] != __INT_MAX__ &&
-                w->maps[y][x]->t[new_y][new_x].val != GATE && !w->maps[y][x]->ch[new_y][new_x]) {
-                w->maps[y][x]->ch[c->y][c->x] = NULL;
-                c->x = new_x; 
-                c->y = new_y;
-                w->maps[y][x]->ch[c->y][c->x] = c;
-            }
-
-            dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], HIKER);
-            dijiksra(w->rival_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], RIVAL);
-
-            print_map(w->maps[y][x]);
-            printf("Current time: %d\n", current_time);
-            usleep(250000);
-
-        } else {
-            move_npc( w->maps[y][x], c, w);
-        }
-
-        int cost = cost_table[c->type % 10][w->maps[y][x]->t[c->y][c->x].val];
-        c->next_turn = current_time + cost;
-        if ( !heap_insert(&char_heap, c, c->next_turn) ) {
-            errmsg = "Adding to character heap failed.";
-            retval = -10;
-            goto destroy_heap;
-        }
+        //     }
+        // }
     }
 
+    // Setting error message to null so that a false error doesn't get outputed.
+    errmsg = NULL;
+    endwin();
+
+    // Clean Up Code:
     destroy_heap:
         heap_destroy(&char_heap);
 
@@ -201,6 +177,65 @@ int main(int argc, char *argv[]) {
         }
         return retval;
 }
+
+
+    // while (1) {
+    //     heap_extract_min(&char_heap, (void **)&c, &current_time);
+
+    //     if (c->p) {
+    //         dx = (rand() % 3) - 1;
+    //         dy = (rand() % 3) - 1;
+    //         new_x = c->x + dx;
+    //         new_y = c->y + dy;
+
+    //         if (new_y > 0 && new_y < HEIGHT - 1 && new_x > 0 && new_x < WIDTH - 1 && 
+    //             cost_table[PC%10][w->maps[y][x]->t[new_y][new_x].val] != __INT_MAX__ &&
+    //             w->maps[y][x]->t[new_y][new_x].val != GATE && !w->maps[y][x]->ch[new_y][new_x]) {
+    //             w->maps[y][x]->ch[c->y][c->x] = NULL;
+    //             c->x = new_x; 
+    //             c->y = new_y;
+    //             w->maps[y][x]->ch[c->y][c->x] = c;
+    //         }
+
+    //         dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], HIKER);
+    //         dijiksra(w->rival_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], RIVAL);
+
+    //         print_map(w->maps[y][x]);
+    //         printf("Current time: %d\n", current_time);
+    //         usleep(250000);
+
+    //     } else {
+    //         move_npc( w->maps[y][x], c, w);
+    //     }
+
+    //     int cost = cost_table[c->type % 10][w->maps[y][x]->t[c->y][c->x].val];
+    //     c->next_turn = current_time + cost;
+    //     if ( !heap_insert(&char_heap, c, c->next_turn) ) {
+    //         errmsg = "Adding to character heap failed.";
+    //         retval = -10;
+    //         goto destroy_heap;
+    //     }
+    // }
+
+
+void init_terminal(void)
+{
+  initscr();
+  raw();
+  noecho();
+  curs_set(0);
+  keypad(stdscr, TRUE);
+  start_color();
+  init_pair(COLOR_RED, COLOR_RED, COLOR_BLACK);
+  init_pair(COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
+  init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
+  init_pair(COLOR_BLUE, COLOR_BLUE, COLOR_BLACK);
+  init_pair(COLOR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
+  init_pair(COLOR_CYAN, COLOR_CYAN, COLOR_BLACK);
+  init_pair(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK);
+}
+
+
 
 /*
     Places NPCs
@@ -259,84 +294,6 @@ int place_npcs(map *m, int num_trainers, heap *h) {
         heap_insert(h, c, c->next_turn);
     }
     return 0;
-}
-
-
-void move_npc(map *m, character *c, world *w) {
-    int dy, dx, new_y, new_x;
-    int next_x = c->x;
-    int next_y = c->y;
-    int min_dist = __INT_MAX__;
-
-    if (c->type == SENTRY) return;
-
-    if (c->type == HIKER || c->type == RIVAL) {
-        // Get dist maps.
-        int (*dist_map)[WIDTH] = (c->type == HIKER) ? w->hiker_dist_map : w->rival_dist_map;
-        
-        for (dy = -1; dy <= 1; dy++) {
-            for (dx = -1; dx <= 1; dx++) {
-                if (dx == 0 && dy == 0) continue;
-                new_y = c->y + dy;
-                new_x = c->x + dx;
-                
-                if (dist_map[new_y][new_x] < min_dist) {
-                    if (!m->ch[new_y][new_x]) {
-                        min_dist = dist_map[new_y][new_x];
-                        next_x = new_x;
-                        next_y = new_y;
-                    }
-                }
-            }
-        }
-    } 
-    else if (c->type == PACER) {
-        new_x = c->x + c->dir[0];
-        new_y = c->y + c->dir[1];
-        
-        if (m->ch[new_y][new_x] || cost_table[OTHER%10][m->t[new_y][new_x].val] == __INT_MAX__ || m->t[new_y][new_x].val == GATE) {
-            c->dir[0] *= -1; 
-            c->dir[1] *= -1; 
-        }
-        next_x = c->x + c->dir[0];
-        next_y = c->y + c->dir[1];
-    }
-    else if (c->type == WANDERER) {
-        new_x = c->x + c->dir[0];
-        new_y = c->y + c->dir[1];
-        
-        if (m->t[new_y][new_x].val != m->t[c->y][c->x].val || m->ch[new_y][new_x] || m->t[new_y][new_x].val == GATE) {
-            if (rand() % 2) {
-                c->dir[0] = (rand() % 2) ? 1 : -1; c->dir[1] = 0;
-            } else {
-                c->dir[0] = 0; c->dir[1] = (rand() % 2) ? 1 : -1;
-            }
-        } else {
-            next_x = new_x;
-            next_y = new_y;
-        }
-    }
-    else if (c->type == EXPLORER) {
-        new_x = c->x + c->dir[0];
-        new_y = c->y + c->dir[1];
-        
-        if (cost_table[OTHER%10][m->t[new_y][new_x].val] == __INT_MAX__ || m->ch[new_y][new_x] || m->t[new_y][new_x].val == GATE) {
-            c->dir[0] = (rand() % 3) - 1;
-            c->dir[1] = (rand() % 3) - 1;
-            if (c->dir[0] == 0 && c->dir[1] == 0) c->dir[0] = 1;
-        } else {
-            next_x = new_x;
-            next_y = new_y;
-        }
-    }
-
-
-    if (!m->ch[next_y][next_x]) {
-        m->ch[c->y][c->x] = NULL;
-        c->x = next_x;
-        c->y = next_y;
-        m->ch[c->y][c->x] = c;
-    }
 }
 
 /* 
@@ -478,6 +435,83 @@ int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_typ
     heap_destroy(&h);
 
     return 0;
+}
+
+void move_npc(map *m, character *c, world *w) {
+    int dy, dx, new_y, new_x;
+    int next_x = c->x;
+    int next_y = c->y;
+    int min_dist = __INT_MAX__;
+
+    if (c->type == SENTRY) return;
+
+    if (c->type == HIKER || c->type == RIVAL) {
+        // Get dist maps.
+        int (*dist_map)[WIDTH] = (c->type == HIKER) ? w->hiker_dist_map : w->rival_dist_map;
+        
+        for (dy = -1; dy <= 1; dy++) {
+            for (dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue;
+                new_y = c->y + dy;
+                new_x = c->x + dx;
+                
+                if (dist_map[new_y][new_x] < min_dist) {
+                    if (!m->ch[new_y][new_x]) {
+                        min_dist = dist_map[new_y][new_x];
+                        next_x = new_x;
+                        next_y = new_y;
+                    }
+                }
+            }
+        }
+    } 
+    else if (c->type == PACER) {
+        new_x = c->x + c->dir[0];
+        new_y = c->y + c->dir[1];
+        
+        if (m->ch[new_y][new_x] || cost_table[OTHER%10][m->t[new_y][new_x].val] == __INT_MAX__ || m->t[new_y][new_x].val == GATE) {
+            c->dir[0] *= -1; 
+            c->dir[1] *= -1; 
+        }
+        next_x = c->x + c->dir[0];
+        next_y = c->y + c->dir[1];
+    }
+    else if (c->type == WANDERER) {
+        new_x = c->x + c->dir[0];
+        new_y = c->y + c->dir[1];
+        
+        if (m->t[new_y][new_x].val != m->t[c->y][c->x].val || m->ch[new_y][new_x] || m->t[new_y][new_x].val == GATE) {
+            if (rand() % 2) {
+                c->dir[0] = (rand() % 2) ? 1 : -1; c->dir[1] = 0;
+            } else {
+                c->dir[0] = 0; c->dir[1] = (rand() % 2) ? 1 : -1;
+            }
+        } else {
+            next_x = new_x;
+            next_y = new_y;
+        }
+    }
+    else if (c->type == EXPLORER) {
+        new_x = c->x + c->dir[0];
+        new_y = c->y + c->dir[1];
+        
+        if (cost_table[OTHER%10][m->t[new_y][new_x].val] == __INT_MAX__ || m->ch[new_y][new_x] || m->t[new_y][new_x].val == GATE) {
+            c->dir[0] = (rand() % 3) - 1;
+            c->dir[1] = (rand() % 3) - 1;
+            if (c->dir[0] == 0 && c->dir[1] == 0) c->dir[0] = 1;
+        } else {
+            next_x = new_x;
+            next_y = new_y;
+        }
+    }
+
+
+    if (!m->ch[next_y][next_x]) {
+        m->ch[c->y][c->x] = NULL;
+        c->x = next_x;
+        c->y = next_y;
+        m->ch[c->y][c->x] = c;
+    }
 }
 
 void print_dist_map(int dist_map[HEIGHT][WIDTH]) {

@@ -74,7 +74,7 @@ typedef struct {
 
 int world_init(world *w);
 void world_destroy(world *w);
-int init_map(map *m, int pos_x, int pos_y);
+int init_map(map *m, int pos_x, int pos_y, map *N, map *S, map *E, map *W);
 int seed_map(map *m);
 int place_paths_and_buildings(map *m);
 int place_buildings(map *m, int intersection, int path, enum terrain_type VAL, int upperbound);
