@@ -40,18 +40,18 @@ int main(int argc, char *argv[]) {
     queue visited;              // Stores all the maps that we have visited, so that we can free them.
 
     // User Input Variable:
-    char *input;
-
+    char *input = NULL;
+ 
     // Movement:
-    map *m;
+    // map *m;
     int y, x;
 
     // Character Movement Vars:
     heap char_heap;             // Stores all the characters in the current map.
     character *player = NULL;   // Pointer to the Player Character.
-    character *c;
-    int current_time;
-    int new_y, new_x, dy, dx;
+    // character *c;
+    // int current_time;
+    // int new_y, new_x, dy, dx;
     
     // Checks for the -numtrainers tag.
     if (argc == 3 || argc == 1) {
@@ -133,23 +133,34 @@ int main(int argc, char *argv[]) {
     // Adding each character to a heap keep track of turns.
     heap_insert(&char_heap, player, player->next_turn);
 
+    if (!(input = malloc(10))) {
+        errmsg = "Mallocing space for input failed.";
+        retval = -9;
+        goto destroy_heap;
+    }
+
     // Using NCURSES lib, the following will output PC and NPC movements.
     init_terminal(); // don't use printf until closing ncurses.
-    input = "Hello World!";
-    while (strcmp("q", input[0])) {
-        printw("Your Input: %s\n", input);
-        printw("Enter 'q' to quit:\n");
-        input  = getch();
-        // for (i = 0; i < WIDTH; i++) {
-        //     for (j = 0; j < HEIGHT; j++) {
 
-        //     }
-        // }
-    }
+    do {
+        // Clears text from previous run.
+        clear();
+
+        // Outputs users input after they press enter.
+        mvprintw(0,0,"Enter 'q' to quit! You entered %s.\n", input);
+
+        // Fetches input.
+        getnstr(input, 10);
+
+        // Updates new changes onto the screen.
+        refresh();
+    } while (strcmp("q", input));
 
     // Setting error message to null so that a false error doesn't get outputed.
     errmsg = NULL;
     endwin();
+
+    free(input);
 
     // Clean Up Code:
     destroy_heap:
@@ -225,14 +236,6 @@ void init_terminal(void)
   noecho();
   curs_set(0);
   keypad(stdscr, TRUE);
-  start_color();
-  init_pair(COLOR_RED, COLOR_RED, COLOR_BLACK);
-  init_pair(COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
-  init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
-  init_pair(COLOR_BLUE, COLOR_BLUE, COLOR_BLACK);
-  init_pair(COLOR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
-  init_pair(COLOR_CYAN, COLOR_CYAN, COLOR_BLACK);
-  init_pair(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK);
 }
 
 
