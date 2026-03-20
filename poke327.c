@@ -17,8 +17,9 @@ int cost_table[5][11] = {{10         ,10         ,10         ,20         ,25    
                          {__INT_MAX__,10         ,10         ,20         ,25         ,__INT_MAX__,__INT_MAX__,__INT_MAX__,50         ,50         ,__INT_MAX__}};//OTHER
 
 
-void init_terminal(void);
 int place_npcs(map *m, int num_trainers, heap *h);
+void init_terminal(void);
+void output_map(map *m);
 void move_npc(map *m, character *c, world *w);
 int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_type npc);
 void print_dist_map(int dist_map[HEIGHT][WIDTH]);
@@ -146,8 +147,18 @@ int main(int argc, char *argv[]) {
         // Clears text from previous run.
         clear();
 
-        // Outputs users input after they press enter.
-        mvprintw(0,0,"Enter 'q' to quit! You entered %s.\n", input);
+        switch (*input)
+        {
+        case "y":
+            /* code */
+            break;
+        
+        default:
+            break;
+        }
+
+        // Prints out the updated map.
+        output_map(w->maps[y][x]);
 
         // Fetches input.
         getnstr(input, 10);
@@ -229,17 +240,6 @@ int main(int argc, char *argv[]) {
     // }
 
 
-void init_terminal(void)
-{
-  initscr();
-  raw();
-  noecho();
-  curs_set(0);
-  keypad(stdscr, TRUE);
-}
-
-
-
 /*
     Places NPCs
 */
@@ -297,6 +297,57 @@ int place_npcs(map *m, int num_trainers, heap *h) {
         heap_insert(h, c, c->next_turn);
     }
     return 0;
+}
+
+void init_terminal(void)
+{
+  initscr();
+  raw();
+  noecho();
+  curs_set(0);
+  keypad(stdscr, TRUE);
+}
+
+void output_map(map *m) {
+    int y, x;
+    char c;
+
+    for (y = 0; y < HEIGHT; y++) {
+        for (x = 0; x < WIDTH; x++) {
+            if (m->ch[y][x]) {
+                c = m->ch[y][x]->symbol;
+            }
+            else {
+                switch (m->t[y][x].val) {
+                    case GATE: c = '#'; 
+                        break;
+                    case PATH: c = '#';
+                        break;
+                    case CLEARING:c = '.';
+                        break;
+                    case TALL_GRASS:c = ':';
+                        break;
+                    case ARCTIC:c = '*';    
+                        break;
+                    case LAKE: c = '~';
+                        break;
+                    case FOREST: c = '^';
+                        break;
+                    case MOUNTAIN: c = '%'; 
+                        break;
+                    case POKECENTER: c = 'C'; 
+                        break;
+                    case POKEMART: c = 'M';
+                        break;
+                    case BOULDER: c = '%';
+                        break;
+                    default: c = ' ';
+                        break;
+                }
+            }
+            mvprintw(y + 1, x, "%c", c);
+        }
+    }
 }
 
 /* 
