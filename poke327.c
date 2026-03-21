@@ -16,11 +16,14 @@ int cost_table[5][11] = {{10         ,10         ,10         ,20         ,25    
                          {__INT_MAX__,__INT_MAX__,__INT_MAX__,__INT_MAX__,__INT_MAX__,7          ,__INT_MAX__,__INT_MAX__,__INT_MAX__,__INT_MAX__,__INT_MAX__}, //SWIMMER
                          {__INT_MAX__,10         ,10         ,20         ,25         ,__INT_MAX__,__INT_MAX__,__INT_MAX__,50         ,50         ,__INT_MAX__}};//OTHER
 
+// Stores out world.
+world *w;
 
 int place_npcs(map *m, int num_trainers, heap *h);
 void init_terminal(void);
 void output_map(map *m);
-void move_npc(map *m, character *c, world *w);
+int move_pc(map *m, character *player, int dy, int dx);
+void move_npc(map *m, character *c);
 int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_type npc);
 void print_dist_map(int dist_map[HEIGHT][WIDTH]);
 
@@ -33,25 +36,21 @@ int main(int argc, char *argv[]) {
     int retval = 0;             // This is what main will return.
     char *errmsg = NULL;        // If an error occurs, this stores error message.
 
-    // Holds --numtrainers value:
-    int NUM_NPCS = 10;
+    int NUM_NPCS = 10;          // Holds --numtrainers value.
     
-    // World Traversing Vars:
-    world *w;                   // Stores out world.
     queue visited;              // Stores all the maps that we have visited, so that we can free them.
-
-    // User Input Variable:
-    char *input = NULL;
  
     // Movement:
     // map *m;
     int y, x;
 
+    // User Input Variable:
+    int input = 0;
+
     // Character Movement Vars:
     heap char_heap;             // Stores all the characters in the current map.
-    character *player = NULL;   // Pointer to the Player Character.
-    // character *c;
-    // int current_time;
+    character *c;
+    int current_time = 0, cost;
     // int new_y, new_x, dy, dx;
     
     // Checks for the -numtrainers tag.
@@ -88,6 +87,7 @@ int main(int argc, char *argv[]) {
 
     // Creates a queue;
     queue_init(&visited);
+
     // Initializes a heap to keep track of whos turn it is.
     heap_init(&char_heap);
 
@@ -122,64 +122,111 @@ int main(int argc, char *argv[]) {
     
     // Placing the paths and buildings on the map.
     place_paths_and_buildings(w->maps[y][x]);
-    if (place_pc(w->maps[y][x], &player)) {
+
+    // Randomly placing NPCs on the map and adding each of them to the heap to keep track of whose turn it is.
+    place_npcs(w->maps[y][x], NUM_NPCS, &char_heap);
+
+    if (place_pc(w->maps[y][x], &c)) {
         errmsg = "place_pc failed\n";
         retval = -8;
         goto free_player;
     }
 
-    // Randomly placing NPCs on the map.
-    place_npcs(w->maps[y][x], NUM_NPCS, &char_heap);
-
-    // Adding each character to a heap keep track of turns.
-    heap_insert(&char_heap, player, player->next_turn);
-
-    if (!(input = malloc(10))) {
-        errmsg = "Mallocing space for input failed.";
-        retval = -9;
-        goto destroy_heap;
-    }
+    dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], HIKER);
+    dijiksra(w->rival_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], RIVAL);
 
     // Using NCURSES lib, the following will output PC and NPC movements.
-    init_terminal(); // don't use printf until closing ncurses.
+    init_terminal();
 
     do {
         // Clears text from previous run.
         clear();
-
-        switch (*input)
-        {
-        case "y":
-            /* code */
-            break;
         
-        default:
-            break;
+        // If the current character is the PC.
+        if (c->p) {
+            switch (input) {
+                case '7':
+                case 'y':
+                    mvprintw(0, 0, "%c will move the pc to the pixel to the top-left of the current position.", input);
+                    move_pc(w->maps[y][x], c, -1, -1);
+                    break;
+                case '8':
+                case 'k':
+                    mvprintw(0, 0, "%c will move the pc to the pixel directly above the current position.", input);
+                    move_pc(w->maps[y][x], c, -1, 0);
+                    break;
+                case '9':
+                case 'u':
+                    mvprintw(0, 0, "%c will move the pc to the pixel to the top-right of the current position.", input);
+                    move_pc(w->maps[y][x], c, -1, 1);
+                    break;
+                case '6':
+                case 'l':
+                    mvprintw(0, 0, "%c will move the pc to the pixel to the right of the current position.", input);
+                    move_pc(w->maps[y][x], c, 0, 1);
+                    break;
+                case '3':
+                case 'n':
+                    mvprintw(0, 0, "%c will move the pc to the pixel to the bottom-right of the current position.", input);
+                    move_pc(w->maps[y][x], c, 1, 1);
+                    break;
+                case '2':
+                case 'j':
+                    mvprintw(0, 0, "%c will move the pc to the pixel directly below the current position.", input);
+                    move_pc(w->maps[y][x], c, 1, 0);
+                    break;
+                case '1':
+                case 'b':
+                    mvprintw(0, 0, "%c will move the pc to the pixel to the bottom-left of the current position.", input);
+                    move_pc(w->maps[y][x], c, 1, -1);
+                    break;
+                case '4':
+                case 'h':
+                    mvprintw(0, 0, "%c will move the pc to the pixel to the left of the current position.", input);
+                    move_pc(w->maps[y][x], c, 0, -1);
+                    break;
+                default:
+                    mvprintw(0, 0, "%c is an invalid!", input);
+                    break;
+            }
+
+            // Prints out the updated map.
+            output_map(w->maps[y][x]);
+
+            // Fetches input.
+            input = getch();
+        }
+        else {
+            move_npc(w->maps[y][x], c);
+            // usleep(100000);
         }
 
-        // Prints out the updated map.
-        output_map(w->maps[y][x]);
+        // Adds current character to the heap with a updated next_turn value.
+        cost = cost_table[c->type%10][w->maps[y][x]->t[c->y][c->x].val];
+        c->next_turn = cost + current_time;
+        if ( !heap_insert(&char_heap, c, c->next_turn) ) {
+            errmsg = "Adding to character heap failed.";
+            retval = -9;
+            goto close_ncurses;
+        }
 
-        // Fetches input.
-        getnstr(input, 10);
+        // Gets next character.
+        heap_extract_min(&char_heap, (void **)&c, &current_time);
 
         // Updates new changes onto the screen.
         refresh();
-    } while (strcmp("q", input));
-
-    // Setting error message to null so that a false error doesn't get outputed.
-    errmsg = NULL;
-    endwin();
-
-    free(input);
+    } while (input != 'Q');
 
     // Clean Up Code:
-    destroy_heap:
-        heap_destroy(&char_heap);
+    close_ncurses:
+        endwin();
 
     free_player:
-        free(player->p);
-        free(player);
+        free(c->p);
+        free(c);
+    
+    // destroy_heap:
+        heap_destroy(&char_heap);
 
     free_visited_maps:
         while (!queue_dequeue(&visited, &x, &y)) {
@@ -299,13 +346,12 @@ int place_npcs(map *m, int num_trainers, heap *h) {
     return 0;
 }
 
-void init_terminal(void)
-{
-  initscr();
-  raw();
-  noecho();
-  curs_set(0);
-  keypad(stdscr, TRUE);
+void init_terminal(void) {
+    initscr();
+    raw();
+    noecho();
+    curs_set(0);
+    keypad(stdscr, TRUE);
 }
 
 void output_map(map *m) {
@@ -479,19 +525,49 @@ int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_typ
         }
     }
 
-    // Recursively destroys the heap.
+    // Destroys the ref_table.
     for (int i = 0; i < HEIGHT; i++) {
         for (int j = 0; j < WIDTH; j++) {
             ref_table[i][j] = NULL;
         } 
     }
 
+    // Recursively destroys the heap.
     heap_destroy(&h);
 
     return 0;
 }
 
-void move_npc(map *m, character *c, world *w) {
+int move_pc(map *m, character *player, int dy, int dx) {
+    int y, x;
+    
+    y = dy + player->y;
+    x = dx + player->x;
+
+    if (cost_table[PC%10][m->t[y][x].val] < __INT_MAX__ && !m->ch[y][x] && m->t[y][x].val != GATE) {
+        m->ch[player->y][player->x] = NULL;
+        m->ch[y][x] = player;
+        player->y = y;
+        player->x = x;
+
+        dijiksra(w->hiker_dist_map, m, &m->t[player->y][player->x], HIKER);
+        dijiksra(w->rival_dist_map, m, &m->t[player->y][player->x], RIVAL);
+    }
+    else if (m->ch[y][x]) {
+        return -1;
+    }
+    else if (m->ch[y][x]) {
+        return -2;
+    }
+    else {
+        return -3;
+    }
+
+    return 0;
+}
+
+
+void move_npc(map *m, character *c) {
     int dy, dx, new_y, new_x;
     int next_x = c->x;
     int next_y = c->y;
@@ -568,21 +644,19 @@ void move_npc(map *m, character *c, world *w) {
     }
 }
 
-void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
-    int x, y;
-    for (y = 0; y < HEIGHT; y++) {
-        for (x = 0; x < WIDTH; x++) {
-            if (dist_map[y][x] == __INT_MAX__) {
-                printf("   ");
-            } else {
-                printf("%02d ", dist_map[y][x] % 100);
-            }
-        }
-        printf("\n");
-    }
-}
-
-
+// void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
+//     int x, y;
+//     for (y = 0; y < HEIGHT; y++) {
+//         for (x = 0; x < WIDTH; x++) {
+//             if (dist_map[y][x] == __INT_MAX__) {
+//                 printf("   ");
+//             } else {
+//                 printf("%02d ", dist_map[y][x] % 100);
+//             }
+//         }
+//         printf("\n");
+//     }
+// }
 
 // int main(int argc, char *argv[]) {
 //     world *w;
@@ -610,7 +684,6 @@ void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
 //         retval = -2;
 //         goto ret_err;
 //     }
-
 //     if ( !(w = malloc(sizeof (world) )) ) {
 //         errmsg = "Mallocing world failed.";
 //         retval = -3;
@@ -621,17 +694,12 @@ void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
 //         retval = -5;
 //         goto free_world;
 //     }
-
 //     queue_init(&visited);
-
-//     srand(time(NULL));
-    
+//     srand(time(NULL));   
 //     // input[0] = 'f';
 //     // new_x_pos = 0;
 //     // new_y_pos = 0;
-
-//     y = x = 200;
-    
+//     y = x = 200;  
 //     // while (input[0] != 'q') {
 //     //     if (input[0] == 'f' ) {
 //     //         x = new_x_pos + 200;
@@ -644,59 +712,48 @@ void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
 //     //     else {
 //     //         printf("Invalid command or edge of w reached!\n");
 //     //     }
-
-//         if (!w->maps[y][x]) {
-            
+//         if (!w->maps[y][x]) {          
 //             w->maps[y][x] = malloc(sizeof (map));
-
 //             if (!w->maps[y][x]) {
 //                 errmsg = "Mallocing a map failed.";
 //                 retval = -6;
 //                 goto free_visited_maps;
 //             }
-
 //             if (queue_enqueue(&visited, x, y)) {
 //                 errmsg = "Couldn't mark map as visited.";
 //                 retval = -7;
 //                 goto free_visited_maps;
 //             }
-
 //             init_map(w->maps[y][x], x, y);
-
 //             // Check north.
 //             if (y > 0 && w->maps[y - 1][x] != NULL) {
 //                 w->maps[y][x]->pN = w->maps[y - 1][x]->pS;
 //             } else {
 //                 w->maps[y][x]->pN = 4 + rand() % (WIDTH - 8);
 //             }
-
 //             // Check south.
 //             if (y < 400 && w->maps[y + 1][x] != NULL) {
 //                 w->maps[y][x]->pS = w->maps[y + 1][x]->pN;
 //             } else {
 //                 w->maps[y][x]->pS = 4 + rand() % (WIDTH - 8);
 //             }
-
 //             // Check west.
 //             if (x > 0 && w->maps[y][x - 1] != NULL) {
 //                 w->maps[y][x]->pW = w->maps[y][x - 1]->pE;
 //             } else {
 //                 w->maps[y][x]->pW = 4 + rand() % (HEIGHT - 8);
 //             }
-
 //             // Check East.
 //             if (x < 400 && w->maps[y][x + 1] != NULL) {
 //                 w->maps[y][x]->pE = w->maps[y][x + 1]->pW;
 //             } else {
 //                 w->maps[y][x]->pE = 4 + rand() % (HEIGHT - 8);
 //             }
-
 //             if (seed_map(w->maps[y][x])) {
 //                 errmsg = "Seeding failed.";
 //                 retval = -1;
 //                 goto free_visited_maps;
-//             }
-            
+//             }          
 //             place_paths_and_buildings(w->maps[y][x]);
 //             if (place_pc(w->maps[y][x], &player)) {
 //                 errmsg = "place_pc failed\n";
@@ -708,13 +765,10 @@ void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
 //         print_map(w->maps[y][x]);
 //         dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[player->y][player->x], HIKER);
 //         dijiksra(w->rival_dist_map, w->maps[y][x], &w->maps[y][x]->t[player->y][player->x], RIVAL);
-
 //     //     printf("Enter a command (n, s, e, w, f <x> <y>, q): ");
-
 //     //     if (!fgets(input, sizeof (input), stdin)) {
 //     //         return -1;
 //     //     }
-
 //     //     if (input[0] == 'f') {
 //     //         int temp_x, temp_y;
 //     //         if (sscanf(input, "f %d %d", &temp_x, &temp_y) == 2) {
@@ -726,18 +780,15 @@ void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
 //     //             }
 //     //         }
 //     //     }
-//     // }
-    
+//     // } 
 //     // printf("Hiker Distance Map:");
 //     // print_dist_map(w->hiker_dist_map); 
 //     // printf("Rival Distance Map:");
 //     // print_dist_map(w->rival_dist_map); 
-
 //     free_player:
 //         free(player->p);
 //     // free_character:
 //         free(player);
-
 //     free_visited_maps:
 //         while (!queue_dequeue(&visited, &x, &y)) {
 //             free(w->maps[y][x]);
@@ -746,10 +797,8 @@ void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
 //         queue_destroy(&visited);
 //     // destroy_world:
 //         world_destroy(w);
-
 //     free_world:
 //         free(w);
-
 //     ret_err:
 //         if (errmsg) {
 //             fprintf(stderr, "Error: %s\n", errmsg);
