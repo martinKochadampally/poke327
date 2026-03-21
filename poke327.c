@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
         }
         else {
             move_npc(w->maps[y][x], c);
-            // usleep(100000);
+            usleep(250000);
         }
 
         // Adds current character to the heap with a updated next_turn value.
