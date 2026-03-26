@@ -38,13 +38,13 @@ typedef struct terrain{
     enum terrain_type val;
 } terrain;
 
-typedef struct pc{
-    int strength;
-} npc;
-
-typedef struct npc{
+typedef struct {
     int strength;
 } pc;
+
+typedef struct {
+    int is_defeated;
+} npc;
 
 typedef struct {
     pc *p;

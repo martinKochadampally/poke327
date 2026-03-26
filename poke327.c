@@ -25,7 +25,10 @@ void output_map(map *m);
 int move_pc(map *m, character *player, int dy, int dx);
 void move_npc(map *m, character *c);
 int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_type npc);
-void print_dist_map(int dist_map[HEIGHT][WIDTH]);
+void trainer_list(map *m, character *pc, int NUM_TRAINERS);
+void enter_building(const char *building_name);
+void battle_interface(character *c);
+
 
 
 /*
@@ -36,7 +39,7 @@ int main(int argc, char *argv[]) {
     int retval = 0;             // This is what main will return.
     char *errmsg = NULL;        // If an error occurs, this stores error message.
 
-    int NUM_NPCS = 10;          // Holds --numtrainers value.
+    int num_trainers;          // Holds --numtrainers value.
     
     queue visited;              // Stores all the maps that we have visited, so that we can free them.
  
@@ -45,31 +48,30 @@ int main(int argc, char *argv[]) {
     int y, x;
 
     // User Input Variable:
-    int input = 0;
+    int input = ' ';
 
     // Character Movement Vars:
     heap char_heap;             // Stores all the characters in the current map.
     character *c;
     int current_time = 0, cost;
-    // int new_y, new_x, dy, dx;
     
     // Checks for the -numtrainers tag.
-    if (argc == 3 || argc == 1) {
-        if (argc == 3) {
-            if (!strcmp("--numtrainers", argv[1])) {
-                NUM_NPCS = atoi(argv[2]);
-                if (NUM_NPCS < 1) { 
-                    errmsg = "The value of numtrainers should be a positive integer greater than 0.";
-                    retval = -1;
-                    goto ret_err;
-                }
-            }
+    if ( argc == 1 ) {
+        num_trainers = 10;
+    }
+    else if ( argc == 3 && !strcmp("--numtrainers", argv[1]) ) {
+        num_trainers = atoi(argv[2]);
+        if (num_trainers < 1) { 
+            errmsg = "The value of numtrainers should be greater than 0.";
+            retval = -1;
+            goto ret_err;
         }
     } else {
         errmsg = "Invalid argument(s). Should be in the form: \n './poke327' or './poke327 --numtrainers <Positive Integer>'";
         retval = -2;
         goto ret_err;
     }
+
 
     // Creates the world.
     if ( !(w = malloc(sizeof (world) )) ) {
@@ -124,12 +126,12 @@ int main(int argc, char *argv[]) {
     place_paths_and_buildings(w->maps[y][x]);
 
     // Randomly placing NPCs on the map and adding each of them to the heap to keep track of whose turn it is.
-    place_npcs(w->maps[y][x], NUM_NPCS, &char_heap);
+    place_npcs(w->maps[y][x], num_trainers, &char_heap);
 
     if (place_pc(w->maps[y][x], &c)) {
         errmsg = "place_pc failed\n";
         retval = -8;
-        goto free_player;
+        goto free_characters;
     }
 
     dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], HIKER);
@@ -147,46 +149,68 @@ int main(int argc, char *argv[]) {
             switch (input) {
                 case '7':
                 case 'y':
-                    mvprintw(0, 0, "%c will move the pc to the pixel to the top-left of the current position.", input);
                     move_pc(w->maps[y][x], c, -1, -1);
                     break;
                 case '8':
                 case 'k':
-                    mvprintw(0, 0, "%c will move the pc to the pixel directly above the current position.", input);
                     move_pc(w->maps[y][x], c, -1, 0);
                     break;
                 case '9':
                 case 'u':
-                    mvprintw(0, 0, "%c will move the pc to the pixel to the top-right of the current position.", input);
                     move_pc(w->maps[y][x], c, -1, 1);
                     break;
                 case '6':
                 case 'l':
-                    mvprintw(0, 0, "%c will move the pc to the pixel to the right of the current position.", input);
                     move_pc(w->maps[y][x], c, 0, 1);
                     break;
                 case '3':
                 case 'n':
-                    mvprintw(0, 0, "%c will move the pc to the pixel to the bottom-right of the current position.", input);
                     move_pc(w->maps[y][x], c, 1, 1);
                     break;
                 case '2':
                 case 'j':
-                    mvprintw(0, 0, "%c will move the pc to the pixel directly below the current position.", input);
                     move_pc(w->maps[y][x], c, 1, 0);
                     break;
                 case '1':
                 case 'b':
-                    mvprintw(0, 0, "%c will move the pc to the pixel to the bottom-left of the current position.", input);
                     move_pc(w->maps[y][x], c, 1, -1);
                     break;
                 case '4':
                 case 'h':
-                    mvprintw(0, 0, "%c will move the pc to the pixel to the left of the current position.", input);
                     move_pc(w->maps[y][x], c, 0, -1);
                     break;
+                case '>':
+                    // Check if the tile the PC is currently standing on is a building
+                    if (w->maps[y][x]->t[c->y][c->x].val == POKEMART) {
+                        enter_building("Pokemart");
+                    } 
+                    else if (w->maps[y][x]->t[c->y][c->x].val == POKECENTER) {
+                        enter_building("Pokemon Center");
+                    } 
+                    else {
+                        mvprintw(0, 0, "You must be standing on a 'M' or 'C' to enter.");
+                    }
+                    // Redraw map and get new input after exiting building
+                    output_map(w->maps[y][x]);
+                    input = getch();
+                    refresh();
+                    continue;
+                case 't':
+                    trainer_list(w->maps[y][x], c, num_trainers);
+                    output_map(w->maps[y][x]);
+                    input = getch();
+                    refresh();
+                    continue;
+                    break;
+                case '5':
+                case ' ':
+                case '.':
+                    break;
                 default:
-                    mvprintw(0, 0, "%c is an invalid!", input);
+                    output_map(w->maps[y][x]);
+                    input = getch();
+                    refresh();
+                    continue;
                     break;
             }
 
@@ -198,7 +222,6 @@ int main(int argc, char *argv[]) {
         }
         else {
             move_npc(w->maps[y][x], c);
-            usleep(250000);
         }
 
         // Adds current character to the heap with a updated next_turn value.
@@ -221,9 +244,16 @@ int main(int argc, char *argv[]) {
     close_ncurses:
         endwin();
 
-    free_player:
-        free(c->p);
-        free(c);
+    free_characters:
+        do {
+            if (c->p) {
+                free(c->p);
+            }
+            else {
+                free(c->npc);
+            }
+            free(c);
+        } while (!heap_extract_min(&char_heap, (void **)&c, &c->next_turn));
     
     // destroy_heap:
         heap_destroy(&char_heap);
@@ -248,56 +278,19 @@ int main(int argc, char *argv[]) {
 }
 
 
-    // while (1) {
-    //     heap_extract_min(&char_heap, (void **)&c, &current_time);
-
-    //     if (c->p) {
-    //         dx = (rand() % 3) - 1;
-    //         dy = (rand() % 3) - 1;
-    //         new_x = c->x + dx;
-    //         new_y = c->y + dy;
-
-    //         if (new_y > 0 && new_y < HEIGHT - 1 && new_x > 0 && new_x < WIDTH - 1 && 
-    //             cost_table[PC%10][w->maps[y][x]->t[new_y][new_x].val] != __INT_MAX__ &&
-    //             w->maps[y][x]->t[new_y][new_x].val != GATE && !w->maps[y][x]->ch[new_y][new_x]) {
-    //             w->maps[y][x]->ch[c->y][c->x] = NULL;
-    //             c->x = new_x; 
-    //             c->y = new_y;
-    //             w->maps[y][x]->ch[c->y][c->x] = c;
-    //         }
-
-    //         dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], HIKER);
-    //         dijiksra(w->rival_dist_map, w->maps[y][x], &w->maps[y][x]->t[c->y][c->x], RIVAL);
-
-    //         print_map(w->maps[y][x]);
-    //         printf("Current time: %d\n", current_time);
-    //         usleep(250000);
-
-    //     } else {
-    //         move_npc( w->maps[y][x], c, w);
-    //     }
-
-    //     int cost = cost_table[c->type % 10][w->maps[y][x]->t[c->y][c->x].val];
-    //     c->next_turn = current_time + cost;
-    //     if ( !heap_insert(&char_heap, c, c->next_turn) ) {
-    //         errmsg = "Adding to character heap failed.";
-    //         retval = -10;
-    //         goto destroy_heap;
-    //     }
-    // }
-
-
 /*
     Places NPCs
 */
 int place_npcs(map *m, int num_trainers, heap *h) {
     int i;
+    int x, y;
     for (i = 0; i < num_trainers; i++) {
         character *c = malloc(sizeof(*c));
         if (!c) return -1;
 
         c->seq_num = i + 1;
         c->next_turn = 0;
+        c->p = NULL;
 
         if (i == 0) {
             c->type = HIKER;
@@ -317,12 +310,11 @@ int place_npcs(map *m, int num_trainers, heap *h) {
             }
         }
 
-        int x, y;
         do {
             x = 1 + rand() % (WIDTH - 2);
             y = 1 + rand() % (HEIGHT - 2);
-        } while (m->ch[y][x] || m->t[y][x].val == GATE ||
-                 cost_table[c->type % 10][m->t[y][x].val] == __INT_MAX__);
+        } while (m->ch[y][x] || m->t[y][x].val == GATE ||  m->t[y][x].val == POKECENTER|| 
+                  m->t[y][x].val == POKEMART || cost_table[c->type % 10][m->t[y][x].val] == __INT_MAX__);
 
         c->x = x;
         c->y = y;
@@ -341,6 +333,12 @@ int place_npcs(map *m, int num_trainers, heap *h) {
             c->dir[1] = (rand() % 3) - 1;
         }
 
+        if ( !(c->npc = malloc(sizeof (npc))) ) {
+            return -1;
+        }
+
+        c->npc->is_defeated = 0;
+
         heap_insert(h, c, c->next_turn);
     }
     return 0;
@@ -352,48 +350,80 @@ void init_terminal(void) {
     noecho();
     curs_set(0);
     keypad(stdscr, TRUE);
+    start_color();
+    init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK); // PATH & GATE
+    init_pair(COLOR_GREEN, COLOR_GREEN, COLOR_BLACK); // CLEARING & TALL GRASS
+    init_pair(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK); //
+    init_pair(COLOR_BLUE, COLOR_BLUE, COLOR_BLACK); //
+    init_pair(COLOR_RED, COLOR_RED, COLOR_BLACK); //
+    init_pair(COLOR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK); //
+    init_pair(COLOR_BLACK, COLOR_BLACK, COLOR_BLACK); //
 }
 
 void output_map(map *m) {
     int y, x;
-    char c;
 
     for (y = 0; y < HEIGHT; y++) {
         for (x = 0; x < WIDTH; x++) {
             if (m->ch[y][x]) {
-                c = m->ch[y][x]->symbol;
+                attron(COLOR_PAIR(COLOR_MAGENTA));
+                mvprintw(y + 1, x, "%c", m->ch[y][x]->symbol);
             }
             else {
                 switch (m->t[y][x].val) {
-                    case GATE: c = '#'; 
+                    case GATE: 
+                        attron(COLOR_PAIR(COLOR_YELLOW));
+                        mvprintw(y + 1, x, "#");
                         break;
-                    case PATH: c = '#';
+                    case PATH: 
+                        attron(COLOR_PAIR(COLOR_YELLOW));
+                        mvprintw(y + 1, x, "#");
                         break;
-                    case CLEARING:c = '.';
+                    case CLEARING:
+                        attron(COLOR_PAIR(COLOR_GREEN));
+                        mvprintw(y + 1, x, ".");
                         break;
-                    case TALL_GRASS:c = ':';
+                    case TALL_GRASS:
+                        attron(COLOR_PAIR(COLOR_GREEN));
+                        mvprintw(y + 1, x, ":");
                         break;
-                    case ARCTIC:c = '*';    
+                    case ARCTIC:
+                        attron(COLOR_PAIR(COLOR_WHITE));
+                        mvprintw(y + 1, x, "*");   
                         break;
-                    case LAKE: c = '~';
+                    case LAKE: 
+                        attron(COLOR_PAIR(COLOR_BLUE));
+                        mvprintw(y + 1, x, "~");
                         break;
-                    case FOREST: c = '^';
+                    case FOREST: 
+                        attron(COLOR_PAIR(COLOR_GREEN));
+                        mvprintw(y + 1, x, "^");
                         break;
-                    case MOUNTAIN: c = '%'; 
+                    case MOUNTAIN: 
+                        attron(COLOR_PAIR(COLOR_WHITE));
+                        mvprintw(y + 1, x, "%c", '%');
                         break;
-                    case POKECENTER: c = 'C'; 
+                    case POKECENTER: 
+                        attron(COLOR_PAIR(COLOR_RED));
+                        mvprintw(y + 1, x, "C");
                         break;
-                    case POKEMART: c = 'M';
+                    case POKEMART: 
+                        attron(COLOR_PAIR(COLOR_RED));
+                        mvprintw(y + 1, x, "M");
                         break;
-                    case BOULDER: c = '%';
+                    case BOULDER: 
+                        attron(COLOR_PAIR(COLOR_WHITE));
+                        mvprintw(y + 1, x, "%c", '%');
                         break;
-                    default: c = ' ';
+                    default: 
+                        attron(COLOR_PAIR(COLOR_BLACK));
+                        mvprintw(y + 1, x, " ");
                         break;
                 }
             }
-            mvprintw(y + 1, x, "%c", c);
         }
     }
+    attron(COLOR_PAIR(COLOR_WHITE));
 }
 
 /* 
@@ -540,9 +570,19 @@ int dijiksra(int dist_map[HEIGHT][WIDTH], map *m, terrain *pc_pos, enum char_typ
 
 int move_pc(map *m, character *player, int dy, int dx) {
     int y, x;
+    char* errmsg;
     
     y = dy + player->y;
     x = dx + player->x;
+
+    if (m->ch[y][x]) {
+        character *target = m->ch[y][x];
+        
+        if (!target->npc->is_defeated) {
+            battle_interface(target);
+        }
+        return -1;
+    }
 
     if (cost_table[PC%10][m->t[y][x].val] < __INT_MAX__ && !m->ch[y][x] && m->t[y][x].val != GATE) {
         m->ch[player->y][player->x] = NULL;
@@ -552,15 +592,29 @@ int move_pc(map *m, character *player, int dy, int dx) {
 
         dijiksra(w->hiker_dist_map, m, &m->t[player->y][player->x], HIKER);
         dijiksra(w->rival_dist_map, m, &m->t[player->y][player->x], RIVAL);
-    }
-    else if (m->ch[y][x]) {
-        return -1;
-    }
-    else if (m->ch[y][x]) {
-        return -2;
+    } 
+    else if (m->t[y][x].val == GATE) {
+        mvprintw(0, 0, "Gates are currently locked!");
     }
     else {
-        return -3;
+        switch (m->t[y][x].val) {
+            case MOUNTAIN:
+                errmsg = "mountainous regions";
+                break;
+            case LAKE:
+                errmsg = "water";
+                break;
+            case FOREST:
+                errmsg = "forests";
+                break;
+            case BOULDER:
+                errmsg = "a boulder";
+                break;
+            default:
+                errmsg = NULL;
+                break;
+        }
+        mvprintw(0, 0, "You can't walk through %s!", errmsg);
     }
 
     return 0;
@@ -572,19 +626,27 @@ void move_npc(map *m, character *c) {
     int next_x = c->x;
     int next_y = c->y;
     int min_dist = __INT_MAX__;
+    int type;
 
-    if (c->type == SENTRY) return;
+    type = (c->npc->is_defeated) ? EXPLORER : c->type;
 
-    if (c->type == HIKER || c->type == RIVAL) {
+    if (type == SENTRY) return;
+
+    if (type == HIKER || type == RIVAL) {
         // Get dist maps.
-        int (*dist_map)[WIDTH] = (c->type == HIKER) ? w->hiker_dist_map : w->rival_dist_map;
+        int (*dist_map)[WIDTH] = (type == HIKER) ? w->hiker_dist_map : w->rival_dist_map;
         
         for (dy = -1; dy <= 1; dy++) {
             for (dx = -1; dx <= 1; dx++) {
                 if (dx == 0 && dy == 0) continue;
                 new_y = c->y + dy;
                 new_x = c->x + dx;
-                
+                if (m->ch[new_y][new_x] && m->ch[new_y][new_x]->p) {
+                    if (!c->npc->is_defeated) {
+                        battle_interface(c);
+                    }
+                    return;
+                }
                 if (dist_map[new_y][new_x] < min_dist) {
                     if (!m->ch[new_y][new_x]) {
                         min_dist = dist_map[new_y][new_x];
@@ -595,7 +657,7 @@ void move_npc(map *m, character *c) {
             }
         }
     } 
-    else if (c->type == PACER) {
+    else if (type == PACER) {
         new_x = c->x + c->dir[0];
         new_y = c->y + c->dir[1];
         
@@ -606,7 +668,7 @@ void move_npc(map *m, character *c) {
         next_x = c->x + c->dir[0];
         next_y = c->y + c->dir[1];
     }
-    else if (c->type == WANDERER) {
+    else if (type == WANDERER) {
         new_x = c->x + c->dir[0];
         new_y = c->y + c->dir[1];
         
@@ -621,11 +683,11 @@ void move_npc(map *m, character *c) {
             next_y = new_y;
         }
     }
-    else if (c->type == EXPLORER) {
+    else if (type == EXPLORER) {
         new_x = c->x + c->dir[0];
         new_y = c->y + c->dir[1];
         
-        if (cost_table[OTHER%10][m->t[new_y][new_x].val] == __INT_MAX__ || m->ch[new_y][new_x] || m->t[new_y][new_x].val == GATE) {
+        if (cost_table[c->type%10][m->t[new_y][new_x].val] == __INT_MAX__ || m->ch[new_y][new_x] || m->t[new_y][new_x].val == GATE) {
             c->dir[0] = (rand() % 3) - 1;
             c->dir[1] = (rand() % 3) - 1;
             if (c->dir[0] == 0 && c->dir[1] == 0) c->dir[0] = 1;
@@ -644,164 +706,80 @@ void move_npc(map *m, character *c) {
     }
 }
 
-// void print_dist_map(int dist_map[HEIGHT][WIDTH]) {
-//     int x, y;
-//     for (y = 0; y < HEIGHT; y++) {
-//         for (x = 0; x < WIDTH; x++) {
-//             if (dist_map[y][x] == __INT_MAX__) {
-//                 printf("   ");
-//             } else {
-//                 printf("%02d ", dist_map[y][x] % 100);
-//             }
-//         }
-//         printf("\n");
-//     }
-// }
+void enter_building(const char *building_name) {
+    int input = 0;
 
-// int main(int argc, char *argv[]) {
-//     world *w;
-//     queue visited;
-//     character *player = NULL;
-//     int NUM_NPCS = 10;
-//     int y, x;
-//     int retval = 0;
-//     char *errmsg = NULL;
-//     // char input[20];
-//     // int new_x_pos, new_y_pos;
-//     if (argc == 3 || argc == 1) {
-//         if (argc == 3) {
-//             if (!strcmp("--numtrainers", argv[1])) {
-//                 NUM_NPCS = atoi(argv[2]);
-//                 if (NUM_NPCS < 1) { 
-//                     errmsg = "The value of numtrainers should be a positive integer greater than 0.";
-//                     retval = -1;
-//                     goto ret_err;
-//                 }
-//             }
-//         }
-//     } else {
-//         errmsg = "Invalid argument(s). Should be in the form: \n './poke327' or './poke327 --numtrainers <Positive Integer>'";
-//         retval = -2;
-//         goto ret_err;
-//     }
-//     if ( !(w = malloc(sizeof (world) )) ) {
-//         errmsg = "Mallocing world failed.";
-//         retval = -3;
-//         goto ret_err;
-//     }
-//     if (world_init(w)) {
-//         errmsg = "Initializing world faild.";
-//         retval = -5;
-//         goto free_world;
-//     }
-//     queue_init(&visited);
-//     srand(time(NULL));   
-//     // input[0] = 'f';
-//     // new_x_pos = 0;
-//     // new_y_pos = 0;
-//     y = x = 200;  
-//     // while (input[0] != 'q') {
-//     //     if (input[0] == 'f' ) {
-//     //         x = new_x_pos + 200;
-//     //         y = new_y_pos + 200;
-//     //     } 
-//     //     else if (input[0] == 'n' && y > 0) y--;
-//     //     else if (input[0] == 's' && y < 400) y++;
-//     //     else if (input[0] == 'e' && x < 400) x++;
-//     //     else if (input[0] == 'w' && x > 0) x--;
-//     //     else {
-//     //         printf("Invalid command or edge of w reached!\n");
-//     //     }
-//         if (!w->maps[y][x]) {          
-//             w->maps[y][x] = malloc(sizeof (map));
-//             if (!w->maps[y][x]) {
-//                 errmsg = "Mallocing a map failed.";
-//                 retval = -6;
-//                 goto free_visited_maps;
-//             }
-//             if (queue_enqueue(&visited, x, y)) {
-//                 errmsg = "Couldn't mark map as visited.";
-//                 retval = -7;
-//                 goto free_visited_maps;
-//             }
-//             init_map(w->maps[y][x], x, y);
-//             // Check north.
-//             if (y > 0 && w->maps[y - 1][x] != NULL) {
-//                 w->maps[y][x]->pN = w->maps[y - 1][x]->pS;
-//             } else {
-//                 w->maps[y][x]->pN = 4 + rand() % (WIDTH - 8);
-//             }
-//             // Check south.
-//             if (y < 400 && w->maps[y + 1][x] != NULL) {
-//                 w->maps[y][x]->pS = w->maps[y + 1][x]->pN;
-//             } else {
-//                 w->maps[y][x]->pS = 4 + rand() % (WIDTH - 8);
-//             }
-//             // Check west.
-//             if (x > 0 && w->maps[y][x - 1] != NULL) {
-//                 w->maps[y][x]->pW = w->maps[y][x - 1]->pE;
-//             } else {
-//                 w->maps[y][x]->pW = 4 + rand() % (HEIGHT - 8);
-//             }
-//             // Check East.
-//             if (x < 400 && w->maps[y][x + 1] != NULL) {
-//                 w->maps[y][x]->pE = w->maps[y][x + 1]->pW;
-//             } else {
-//                 w->maps[y][x]->pE = 4 + rand() % (HEIGHT - 8);
-//             }
-//             if (seed_map(w->maps[y][x])) {
-//                 errmsg = "Seeding failed.";
-//                 retval = -1;
-//                 goto free_visited_maps;
-//             }          
-//             place_paths_and_buildings(w->maps[y][x]);
-//             if (place_pc(w->maps[y][x], &player)) {
-//                 errmsg = "place_pc failed\n";
-//                 retval = -1;
-//                 goto free_player;
-//             }
-//         }
-//         place_npcs(w->maps[y][x], NUM_NPCS);
-//         print_map(w->maps[y][x]);
-//         dijiksra(w->hiker_dist_map, w->maps[y][x], &w->maps[y][x]->t[player->y][player->x], HIKER);
-//         dijiksra(w->rival_dist_map, w->maps[y][x], &w->maps[y][x]->t[player->y][player->x], RIVAL);
-//     //     printf("Enter a command (n, s, e, w, f <x> <y>, q): ");
-//     //     if (!fgets(input, sizeof (input), stdin)) {
-//     //         return -1;
-//     //     }
-//     //     if (input[0] == 'f') {
-//     //         int temp_x, temp_y;
-//     //         if (sscanf(input, "f %d %d", &temp_x, &temp_y) == 2) {
-//     //             if (temp_x >= -200 && temp_x <= 200 && temp_y >= -200 && temp_y <= 200) {
-//     //                 new_x_pos = temp_x;
-//     //                 new_y_pos = temp_y;
-//     //             } else {
-//     //                 printf("Out of bounds! Stay between -200 and 200.\n");
-//     //             }
-//     //         }
-//     //     }
-//     // } 
-//     // printf("Hiker Distance Map:");
-//     // print_dist_map(w->hiker_dist_map); 
-//     // printf("Rival Distance Map:");
-//     // print_dist_map(w->rival_dist_map); 
-//     free_player:
-//         free(player->p);
-//     // free_character:
-//         free(player);
-//     free_visited_maps:
-//         while (!queue_dequeue(&visited, &x, &y)) {
-//             free(w->maps[y][x]);
-//         }
-//     // destroy_queue:
-//         queue_destroy(&visited);
-//     // destroy_world:
-//         world_destroy(w);
-//     free_world:
-//         free(w);
-//     ret_err:
-//         if (errmsg) {
-//             fprintf(stderr, "Error: %s\n", errmsg);
-//         }
-//         return retval;
-// }
+    while (input != '<') {
+        clear();
+        mvprintw(1, 0, "Welcome to the %s!", building_name);
+        mvprintw(2, 0, "This is a temporary placeholder.");
+        mvprintw(3, 0, "Press '<' to exit.");
+        refresh();
+        input = getch();
+    }
+}
+
+void trainer_list(map *m, character *pc, int NUM_TRAINERS) {
+    int i, j, dy, dx, count = 0;
+    character *trainers[NUM_TRAINERS];
+
+    // Gets pointers to all NPCs
+    for (i = 0; i < HEIGHT; i++) {
+        for (j = 0; j < WIDTH; j++) {
+            if (m->ch[i][j] && !m->ch[i][j]->p) {
+                trainers[count++] = m->ch[i][j];
+            }
+        }
+    }
+
+    int offset = 0;
+    int key = 0;
+    int max_display = 20;
+
+    while (key != 27) {
+        clear();
+        mvprintw(0, 0, "Trainer List:");
+        mvprintw(1, 0, "%-5s | %-20s", "Sym", "Relative Position");
+        mvprintw(2, 0, "------------------------------------");
+
+        for (i = 0; i < max_display && (i + offset) < count; i++) {
+            character *tnr = trainers[i + offset];
+            
+            // Calculate relative position
+            dy = pc->y - tnr->y;
+            dx = pc->x - tnr->x;
+
+            char *vert = (dy >= 0) ? "north" : "south";
+            char *hori = (dx >= 1) ? "west" : "east";
+
+            mvprintw(i + 3, 0, "  %c   | %d %s and %d %s", tnr->symbol, abs(dy), vert, abs(dx), hori);
+        }
+
+        if (offset + max_display < count) mvprintw(23, 0, "-- More Below (Down Arrow) --");
+        if (offset > 0) mvprintw(2, 30, "-- More Above (Up Arrow) --");
+
+        refresh();
+        key = getch();
+
+        // Scrolling
+        if (key == KEY_UP && offset > 0) {
+            offset--;
+        } else if (key == KEY_DOWN && (offset + max_display) < count) {
+            offset++;
+        }
+    }
+}
+
+void battle_interface(character *c) {
+    int input = 0;
+
+    while (input != 27) {
+        clear();
+        mvprintw(10, 30, "A WILD TRAINER APPEARS!");
+        mvprintw(12, 33, "Trainer: %c", c->symbol);
+        mvprintw(14, 25, "BATTLE PLACEHOLDER. Press ESC to win.");
+        refresh();
+        input = getch();
+    }
+    c->npc->is_defeated = 1;
+}
