@@ -19,6 +19,7 @@ This project is meant to be a Pokemon-like game. There is a 401x401 world map, w
             * > to enter a Pokemart or PokeCenter screen and < to exit.
             * t to see a list of trainers and thier current position.
             * esc to exit trainer and battle view.
+            * Q to exit the game.
     -   If you encounter a trainer, it will take you to a battle screen, which will be fully implemented in the future.
     -   Once you have defeated a trainer, they will no longer pathfind to you. They will move as an explorer, however, hikers are still able to move through mountainous    regions and forest.
     -  Lastly I have added colour.
@@ -33,10 +34,10 @@ Bash ```cd kochadampally_martin.assignment-1.05```
 Bash ```make clean```
 
 3. Compile the code:
-Bash ```make poke327```
+Bash ```make```
 
 4. Run the code:
-Bash ```./poke327```
+Bash ```./poke```
 
 
 

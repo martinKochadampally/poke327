@@ -244,8 +244,16 @@ int main(int argc, char *argv[]) {
     close_ncurses:
         endwin();
 
+        if (c) {
+            if (c->p) 
+                free(c->p);
+            else 
+                free(c->npc);
+            free(c);
+        }
+
     free_characters:
-        do {
+        while (!heap_extract_min(&char_heap, (void **)&c, &current_time)) {
             if (c->p) {
                 free(c->p);
             }
@@ -253,7 +261,7 @@ int main(int argc, char *argv[]) {
                 free(c->npc);
             }
             free(c);
-        } while (!heap_extract_min(&char_heap, (void **)&c, &c->next_turn));
+        }
     
     // destroy_heap:
         heap_destroy(&char_heap);
@@ -318,7 +326,6 @@ int place_npcs(map *m, int num_trainers, heap *h) {
 
         c->x = x;
         c->y = y;
-        m->ch[y][x] = c;
 
         if (c->type == PACER || c->type == WANDERER) {
             if (rand() % 2) {
@@ -334,12 +341,19 @@ int place_npcs(map *m, int num_trainers, heap *h) {
         }
 
         if ( !(c->npc = malloc(sizeof (npc))) ) {
+            free(c);
             return -1;
         }
 
         c->npc->is_defeated = 0;
 
-        heap_insert(h, c, c->next_turn);
+        if (!heap_insert(h, c, c->next_turn)) {
+            free(c->npc);
+            free(c);
+            return -1;
+        }
+
+        m->ch[y][x] = c;
     }
     return 0;
 }
@@ -595,6 +609,7 @@ int move_pc(map *m, character *player, int dy, int dx) {
     } 
     else if (m->t[y][x].val == GATE) {
         mvprintw(0, 0, "Gates are currently locked!");
+        return -2;
     }
     else {
         switch (m->t[y][x].val) {
@@ -615,6 +630,7 @@ int move_pc(map *m, character *player, int dy, int dx) {
                 break;
         }
         mvprintw(0, 0, "You can't walk through %s!", errmsg);
+        return -3;
     }
 
     return 0;
@@ -775,9 +791,9 @@ void battle_interface(character *c) {
 
     while (input != 27) {
         clear();
-        mvprintw(10, 30, "A WILD TRAINER APPEARS!");
-        mvprintw(12, 33, "Trainer: %c", c->symbol);
-        mvprintw(14, 25, "BATTLE PLACEHOLDER. Press ESC to win.");
+        mvprintw(10, 0, "A WILD TRAINER APPEARS!");
+        mvprintw(12, 0, "Trainer: %c", c->symbol);
+        mvprintw(14, 0, "BATTLE PLACEHOLDER. Press ESC to win.");
         refresh();
         input = getch();
     }
