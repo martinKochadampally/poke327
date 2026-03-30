@@ -32,7 +32,7 @@ void world_destroy(world *w) {
 }
 
 
-int init_map(map *m, int pos_x, int pos_y) {    
+int init_map(map *m, int pos_x, int pos_y, map *N, map *S, map *E, map *W) {    
     int x, y;
 
     for (y = 0; y < HEIGHT; y++) {
@@ -59,6 +59,34 @@ int init_map(map *m, int pos_x, int pos_y) {
     m->pos_x = pos_x;
     m->pos_y = pos_y;
     m->pN = m->pS = m->pE = m->pW = -1;
+
+    // Check North.
+    if (y > 0 && N) {
+        m->pN = N->pS;
+    } else {
+        m->pN = 4 + rand() % (WIDTH - 8);
+    }
+    
+    // Check East.
+    if (x < 400 && E) {
+        m->pE = E->pW;
+    } else {
+        m->pE = 4 + rand() % (HEIGHT - 8);
+    }
+
+    // Check South.
+    if (y < 400 && S) {
+        m->pS = S->pN;
+    } else {
+        m->pS = 4 + rand() % (WIDTH - 8);
+    }
+
+    // Check West.
+    if (x > 0 && W) {
+        m->pW = W->pE;
+    } else {
+        m->pW = 4 + rand() % (HEIGHT - 8);
+    }
 
     return 0;
 }
