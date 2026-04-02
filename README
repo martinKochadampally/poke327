@@ -1,28 +1,14 @@
 # Poke 327
 
 ## Overview
-This project is meant to be a Pokemon-like game. There is a 401x401 world map, which gets procedurally generated as the moves and maintains consistency with neighbouring maps. You can traverse through the map and fight the other trainers in the game.
+This project is meant to be a Pokemon-like game. 
+You can explore a 400 by 400 world with various types of terrain, and fight with other NPC trainers.
 
 
-## New Features: 1.05
-    -   Instead of outputting the game into the terminal, I have implemented it using NCURSES.
-    -   The new controls are:
-            * b or 1 to move South-West.
-            * j or 2 to move South.
-            * n or 3 to move South-East.
-            * h or 4 to move West.
-            * l or 6 to move East.
-            * y or 7 to move North-West.
-            * k or 8 to move North.
-            * u or 9 to move North-East.
-            * Spacebar or 5 or . to do nothing.
-            * > to enter a Pokemart or PokeCenter screen and < to exit.
-            * t to see a list of trainers and thier current position.
-            * esc to exit trainer and battle view.
-            * Q to exit the game.
-    -   If you encounter a trainer, it will take you to a battle screen, which will be fully implemented in the future.
-    -   Once you have defeated a trainer, they will no longer pathfind to you. They will move as an explorer, however, hikers are still able to move through mountainous    regions and forest.
-    -  Lastly I have added colour.
+## New Features: 1.06
+    -   All code has now been changed so that it runs with g++.
+    -   The make file has been updated accordingly.
+    -   The world traversal code has been re-introduced.
 
 
 
@@ -42,14 +28,36 @@ Bash ```./poke```
 
 
 ## Previous Updates
+### 1.05
+    -   Instead of outputting the game into the terminal, I have implemented it using NCURSES.
+    -   The new controls are:
+            * b or 1 to move South-West.
+            * j or 2 to move South.
+            * n or 3 to move South-East.
+            * h or 4 to move West.
+            * l or 6 to move East.
+            * y or 7 to move North-West.
+            * k or 8 to move North.
+            * u or 9 to move North-East.
+            * Spacebar or 5 or . to do nothing.
+            * > to enter a Pokemart or PokeCenter screen and < to exit.
+            * t to see a list of trainers and thier current position.
+            * esc to exit trainer and battle view.
+            * Q to exit the game.
+    -   If you encounter a trainer, it will take you to a battle screen, which will be fully implemented in the future.
+    -   Once you have defeated a trainer, they will no longer pathfind to you. They will move as an explorer, however, hikers are still able to move through mountainous    regions and forest.
+    -  Lastly I have added colour.
+
 ### 1.04
     -  I have added NPC and PC movement. You cannot control the PC's movement yet, thats next, but right now it moves randomly and rival and hikers will chase after it using the distance maps from the last update. 
     -  I have also added wanderes('w'), explorers('e'), pacers('p') and sentrys('s'). The sentries don't move at all and the others move until reaching either the end of their terrain or to an impassable object, when it will move in the opposite direction.
     - I have also made the heap generic, so I could use it for the characters too.
+
 ### 1.03
     - Player Character Placement: The Player Character (@) is placed randomly somewhere along the road (#).
     - Dijikstra & Fibbonacci Heap Implementation: I have implemented a Fibonacci Heap to serve as the priority queue for my Dijikstra's Algorithim. I also to implemented a reference table to keep pointers to all elements currently in the heap, making deacrease_key easier.
     - Distance Maps: I run dijikstra's starting at the Player Charachter's position so that I can generate distance maps for each NPC to know the most efficient route the PC.
+
 ### 1.02
     I have implement the maps, so that they hold the position of the four gates and thier current x, y position in the world. I also added pointers from each of the squares to its surrounding squares, and updated this for the seeding code as well. Then moving on to the updates made for assignment-1.02, I used a queue to keep track of the maps created, so that i know what to free in the end, enqueuing maps as I create them. I then used a while loop, fgets and sscanf to get the get the commands from the user. I used the eq from the specs to reduce the number of buildings as you travel further away from rhe center, and assigned gates before world generation, to ensure consistency with neighbouring maps.
 

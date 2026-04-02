@@ -1,23 +1,18 @@
-# poke327: queue.o map.o heap.o dijikstras.o poke327.o
-# 	gcc queue.o map.o heap.o dijikstras.o poke327.o -o poke327
-poke327: queue.o map.o heap.o poke327.o
-	gcc queue.o map.o heap.o poke327.o -o poke -lncurses
+poke327: queue.o map.o heap.o poke.o
+	g++ queue.o map.o heap.o poke.o -o poke -lncurses
 
-#-c makes this stop after compiling returning the object file (.o files).
-queue.o: queue.c queue.h
-	gcc -Wall -Werror -g queue.c -c
+# -c makes this stop after compiling returning the object file (.o files).
+queue.o: queue.cpp queue.h
+	g++ -Wall -Werror -g queue.cpp -c
 
-map.o: map.c map.h
-	gcc -Wall -Werror -g map.c -c
+map.o: map.cpp map.h
+	g++ -Wall -Werror -g map.cpp -c
 
-heap.o: heap.c heap.h
-	gcc -Wall -Werror -g heap.c -c
+heap.o: heap.cpp heap.h
+	g++ -Wall -Werror -g heap.cpp -c
 
-dijikstras.o: dijikstras.c dijikstras.h
-	gcc -Wall -Werror -g dijikstras.c -c
-
-poke327.o: poke327.c queue.h map.h
-	gcc -Wall -Werror -g poke327.c -c
+poke.o: poke.cpp queue.h map.h
+	g++ -Wall -Werror -g poke.cpp -c
 
 clean:
-	rm -f *.o poke327 *~
+	rm -f *.o poke *~
