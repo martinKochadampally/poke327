@@ -1,11 +1,11 @@
-poke327: queue.o map.o heap.o poke.o
+poke327: queue.o heap.o map.o poke.o
 	g++ queue.o map.o heap.o poke.o -o poke -lncurses
 
 # -c makes this stop after compiling returning the object file (.o files).
 queue.o: queue.cpp queue.h
 	g++ -Wall -Werror -g queue.cpp -c
 
-map.o: map.cpp map.h
+map.o: map.cpp map.h heap.h
 	g++ -Wall -Werror -g map.cpp -c
 
 heap.o: heap.cpp heap.h

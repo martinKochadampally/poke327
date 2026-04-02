@@ -2,8 +2,10 @@
 #include <cstring>
 #include <vector>
 
-#include "map.h"
 #include "heap.h"
+
+#define HEIGHT 21
+#define WIDTH 80
 
 heap_item *ref_table[HEIGHT][WIDTH];
 

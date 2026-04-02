@@ -1,8 +1,6 @@
 #ifndef HEAP_H
 #define HEAP_H
 
-#include "map.h"
-
 /* This is my implementation of a fibbonacci heap. */
 
 typedef struct heap_item

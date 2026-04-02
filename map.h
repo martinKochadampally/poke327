@@ -1,12 +1,8 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "heap.h"
-
 #define HEIGHT 21
 #define WIDTH 80
-
-class Map;
 
 enum terrain_type{
     EMPTY = -1,
@@ -45,11 +41,11 @@ typedef struct terrain{
 class Character {
 public:
     char symbol;
+    char_type type;
+    int x, y;
     int seq_num;
     int next_turn;
-    int x, y;
     int dir[2];
-    char_type type;
 
     Character(char symbol, char_type type, int x, int y) : symbol(symbol), type(type), x(x), y(y), seq_num(0), next_turn(0)
     {
@@ -73,7 +69,8 @@ class NPC : public Character {
 public:
     bool is_defeated;
 
-    NPC(char symbol, char_type type, int x, int y) : Character(symbol, type, x, y), is_defeated(false) {}
+    NPC(char symbol, char_type type, int x, int y)
+        : Character(symbol, type, x, y), is_defeated(false) {}
     ~NPC() override {}
     void takeTurn(class Map *m) override {}
 };
@@ -107,6 +104,5 @@ public:
     World();
     ~World();
 };
-
 
 #endif
