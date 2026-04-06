@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <iostream>
 #include <ncurses.h>
 #include <vector>
 
@@ -28,56 +29,68 @@ int cost_table[5][11] = {
 };
 
 World *w;
-int num_trainers_global;
+int num_trainers;
 
 int  place_npcs(Map *m, int num_trainers);
-Map *get_or_create_map(int wx, int wy);
+Map *get_or_create_map(int world_x, int world_y);
 void init_terminal(void);
 void output_map(Map *m);
-int  move_pc(Map **m, int *wx, int *wy, Character *player, int dy, int dx);
+int  move_pc(Map **m, int *world_x, int *world_y, Character *player, int dy, int dx);
 void move_npc(Map *m, Character *c);
 int  dijiksra(int dist_map[HEIGHT][WIDTH], Map *m, terrain *pc_pos, enum char_type npc);
 void trainer_list(Map *m, Character *pc, int NUM_TRAINERS);
 void enter_building(const char *building_name);
 void battle_interface(Character *c);
-void fly_command(Map **m, int *wx, int *wy, Character *pc);
+void fly_command(Map **m, int *world_x, int *world_y, Character *pc);
 
 
 // Returns an existing map or generates a new one.
-Map *get_or_create_map(int wx, int wy) {
-    if (wx < 0 || wx > 400 || wy < 0 || wy > 400) return NULL;
+Map *get_or_create_map(int world_x, int world_y) {
+    if (world_x < 0 || world_x > 400 || world_y < 0 || world_y > 400) return NULL;
 
-    if (w->maps[wy][wx]) return w->maps[wy][wx];
+    if (w->maps[world_y][world_x]) return w->maps[world_y][world_x];
 
-    Map *N = (wy > 0)   ? w->maps[wy-1][wx] : NULL;
-    Map *S = (wy < 400) ? w->maps[wy+1][wx] : NULL;
-    Map *E = (wx < 400) ? w->maps[wy][wx+1] : NULL;
-    Map *W = (wx > 0)   ? w->maps[wy][wx-1] : NULL;
+    Map *N = (world_y > 0)   ? w->maps[world_y-1][world_x] : NULL;
+    Map *S = (world_y < 400) ? w->maps[world_y+1][world_x] : NULL;
+    Map *E = (world_x < 400) ? w->maps[world_y][world_x+1] : NULL;
+    Map *W = (world_x > 0)   ? w->maps[world_y][world_x-1] : NULL;
 
-    w->maps[wy][wx] = new Map(wx, wy, N, S, E, W);
-    w->maps[wy][wx]->seed();
-    w->maps[wy][wx]->place_paths_and_buildings();
-    place_npcs(w->maps[wy][wx], num_trainers_global);
 
-    return w->maps[wy][wx];
+    if ( !(w->maps[world_y][world_x] = new Map(world_x, world_y, N, S, E, W)) ) {
+        return NULL;
+    }
+
+    w->maps[world_y][world_x]->seed();
+    w->maps[world_y][world_x]->place_paths_and_buildings();
+    place_npcs(w->maps[world_y][world_x], num_trainers);
+
+    return w->maps[world_y][world_x];
 }
 
 
 int main(int argc, char *argv[]) {
+    // Error Handling Variables.
     int retval = 0;
     const char *errmsg = NULL;
 
-    int wx, wy;         // World coordinates (0-400)
+    // World Traversal Variables.
+    int world_x, world_y;
+    Map *m;
+    Character *c;
+    
+    // User Input.
     int input = ' ';
 
     Character *pc = NULL;
     int cost;
 
+    queue visited_maps;
+
     if (argc == 1) {
-        num_trainers_global = 10;
+        num_trainers = 10;
     } else if (argc == 3 && !strcmp("--numtrainers", argv[1])) {
-        num_trainers_global = atoi(argv[2]);
-        if (num_trainers_global < 1) {
+        num_trainers = atoi(argv[2]);
+        if (num_trainers < 1) {
             errmsg = "The value of numtrainers should be greater than 0.";
             retval = -1;
             goto ret_err;
@@ -88,49 +101,71 @@ int main(int argc, char *argv[]) {
         goto ret_err;
     }
 
-    w = new World();
-    if (!w) { errmsg = "Creating world failed."; retval = -3; goto ret_err; }
+    if (!(w = new World())) { 
+        errmsg = "Creating world failed."; retval = -3; 
+        goto ret_err; 
+    }
 
     srand(time(NULL));
 
-    wx = wy = 200;
+    world_x = world_y = 200;
 
     // Generate starting map.
-    get_or_create_map(wx, wy);
-
-    // Place PC on starting map.
-    if (w->maps[wy][wx]->place_pc(&pc)) {
-        errmsg = "place_pc failed.";
+    if (!get_or_create_map(world_x, world_y)) {
+        errmsg = "Failed to create map.";
         retval = -4;
         goto cleanup;
     }
 
-    dijiksra(w->hiker_dist_map, w->maps[wy][wx], &w->maps[wy][wx]->t[pc->y][pc->x], HIKER);
-    dijiksra(w->rival_dist_map, w->maps[wy][wx], &w->maps[wy][wx]->t[pc->y][pc->x], RIVAL);
+    // Place PC on starting map.
+    if (w->maps[world_y][world_x]->place_pc(&pc)) {
+        errmsg = "Failed to place player character.";
+        retval = -4;
+        goto cleanup;
+    }
+
+    dijiksra(w->hiker_dist_map, w->maps[world_y][world_x], &w->maps[world_y][world_x]->t[pc->y][pc->x], HIKER);
+    dijiksra(w->rival_dist_map, w->maps[world_y][world_x], &w->maps[world_y][world_x]->t[pc->y][pc->x], RIVAL);
 
     // Add PC to the map's heap.
     pc->next_turn = 0;
-    heap_insert(&w->maps[wy][wx]->char_heap, pc, pc->next_turn);
+    heap_insert(&w->maps[world_y][world_x]->char_heap, pc, pc->next_turn);
 
     init_terminal();
 
     {
-        Map *m = w->maps[wy][wx];
-        Character *c = pc;
+        m = w->maps[world_y][world_x];
+        c = pc;
 
         do {
             clear();
 
             if (c->type == PC_TYPE) {
                 switch (input) {
-                    case '7': case 'y': move_pc(&m, &wx, &wy, c, -1, -1); break;
-                    case '8': case 'k': move_pc(&m, &wx, &wy, c, -1,  0); break;
-                    case '9': case 'u': move_pc(&m, &wx, &wy, c, -1,  1); break;
-                    case '6': case 'l': move_pc(&m, &wx, &wy, c,  0,  1); break;
-                    case '3': case 'n': move_pc(&m, &wx, &wy, c,  1,  1); break;
-                    case '2': case 'j': move_pc(&m, &wx, &wy, c,  1,  0); break;
-                    case '1': case 'b': move_pc(&m, &wx, &wy, c,  1, -1); break;
-                    case '4': case 'h': move_pc(&m, &wx, &wy, c,  0, -1); break;
+                    case '7': case 'y': 
+                        move_pc(&m, &world_x, &world_y, c, -1, -1); 
+                        break;
+                    case '8': case 'k': 
+                        move_pc(&m, &world_x, &world_y, c, -1,  0); 
+                        break;
+                    case '9': case 'u': 
+                        move_pc(&m, &world_x, &world_y, c, -1,  1); 
+                        break;
+                    case '6': case 'l': 
+                        move_pc(&m, &world_x, &world_y, c,  0,  1); 
+                        break;
+                    case '3': case 'n': 
+                        move_pc(&m, &world_x, &world_y, c,  1,  1); 
+                        break;
+                    case '2': case 'j': 
+                        move_pc(&m, &world_x, &world_y, c,  1,  0); 
+                        break;
+                    case '1': case 'b': 
+                        move_pc(&m, &world_x, &world_y, c,  1, -1); 
+                        break;
+                    case '4': case 'h': 
+                        move_pc(&m, &world_x, &world_y, c,  0, -1); 
+                        break;
                     case '>':
                         if (m->t[c->y][c->x].val == POKEMART)
                             enter_building("Pokemart");
@@ -140,10 +175,10 @@ int main(int argc, char *argv[]) {
                             mvprintw(0, 0, "You must be standing on a 'M' or 'C' to enter.");
                         goto update_changes;
                     case 't':
-                        trainer_list(m, c, num_trainers_global);
+                        trainer_list(m, c, num_trainers);
                         goto update_changes;
                     case 'f':
-                        fly_command(&m, &wx, &wy, c);
+                        fly_command(&m, &world_x, &world_y, c);
                         goto update_changes;
                     case '5': 
                     case ' ': 
@@ -158,17 +193,25 @@ int main(int argc, char *argv[]) {
             // Update turn queue.
             cost = cost_table[c->type % 10][m->t[c->y][c->x].val];
             c->next_turn = cost + m->current_time;
-            heap_insert(&m->char_heap, c, c->next_turn);
+            if (!heap_insert(&m->char_heap, c, c->next_turn)) {
+                errmsg = "Failed to add character to heap."; 
+                retval = -4; 
+                goto cleanup; 
+            }
 
             // Get next character.
-            heap_extract_min(&m->char_heap, (void **)&c, &m->current_time);
+            if (heap_extract_min(&m->char_heap, (void **)&c, &m->current_time)) {
+                errmsg = "Failed getting next character."; 
+                retval = -5; 
+                goto cleanup; 
+            }
 
             // If extracted character is PC, update c to track it.
             if (c->type == PC_TYPE) pc = c;
 
             update_changes:
                 output_map(m);
-                mvprintw(0, 0, "Position: (%d, %d)  ", wx - 200, wy - 200);
+                mvprintw(22, 0, "Position: (%d, %d)  ", world_x - 200, world_y - 200);
                 if (c->type == PC_TYPE) input = getch();
                 refresh();
 
@@ -246,7 +289,7 @@ int place_npcs(Map *m, int num_trainers) {
 
 
 // Handles gate traversal and normal movement.
-int move_pc(Map **m_ptr, int *wx, int *wy, Character *player, int dy, int dx) {
+int move_pc(Map **m_ptr, int *world_x, int *world_y, Character *player, int dy, int dx) {
     Map *m = *m_ptr;
     int ny = player->y + dy;
     int nx = player->x + dx;
@@ -254,42 +297,42 @@ int move_pc(Map **m_ptr, int *wx, int *wy, Character *player, int dy, int dx) {
 
     // Check for gate traversal.
     if (m->t[ny][nx].val == GATE) {
-        int new_wx = *wx, new_wy = *wy;
+        int new_world_x = *world_x, new_world_y = *world_y;
         int new_px, new_py;
 
         // Determine which gate and new position in neighbor map.
         if (nx == 0) {
             // West gate
-            if (*wx == 0) { mvprintw(0, 0, "At the edge of the world!"); return -1; }
-            new_wx = *wx - 1;
-            new_wy = *wy;
+            if (*world_x == 0) { mvprintw(0, 0, "At the edge of the world!"); return -1; }
+            new_world_x = *world_x - 1;
+            new_world_y = *world_y;
             new_px = WIDTH - 2;
             new_py = player->y;
         } else if (nx == WIDTH - 1) {
             // East gate
-            if (*wx == 400) { mvprintw(0, 0, "At the edge of the world!"); return -1; }
-            new_wx = *wx + 1;
-            new_wy = *wy;
+            if (*world_x == 400) { mvprintw(0, 0, "At the edge of the world!"); return -1; }
+            new_world_x = *world_x + 1;
+            new_world_y = *world_y;
             new_px = 1;
             new_py = player->y;
         } else if (ny == 0) {
             // North gate
-            if (*wy == 0) { mvprintw(0, 0, "At the edge of the world!"); return -1; }
-            new_wx = *wx;
-            new_wy = *wy - 1;
+            if (*world_y == 0) { mvprintw(0, 0, "At the edge of the world!"); return -1; }
+            new_world_x = *world_x;
+            new_world_y = *world_y - 1;
             new_px = player->x;
             new_py = HEIGHT - 2;
         } else {
             // South gate
-            if (*wy == 400) { mvprintw(0, 0, "At the edge of the world!"); return -1; }
-            new_wx = *wx;
-            new_wy = *wy + 1;
+            if (*world_y == 400) { mvprintw(0, 0, "At the edge of the world!"); return -1; }
+            new_world_x = *world_x;
+            new_world_y = *world_y + 1;
             new_px = player->x;
             new_py = 1;
         }
 
         // Get or create the neighbor map.
-        Map *new_map = get_or_create_map(new_wx, new_wy);
+        Map *new_map = get_or_create_map(new_world_x, new_world_y);
         if (!new_map) { mvprintw(0, 0, "Can't go there!"); return -1; }
 
 
@@ -308,8 +351,8 @@ int move_pc(Map **m_ptr, int *wx, int *wy, Character *player, int dy, int dx) {
         dijiksra(w->hiker_dist_map, new_map, &new_map->t[player->y][player->x], HIKER);
         dijiksra(w->rival_dist_map, new_map, &new_map->t[player->y][player->x], RIVAL);
 
-        *wx = new_wx;
-        *wy = new_wy;
+        *world_x = new_world_x;
+        *world_y = new_world_y;
         *m_ptr = new_map;
         return 0;
     }
@@ -355,7 +398,7 @@ int move_pc(Map **m_ptr, int *wx, int *wy, Character *player, int dy, int dx) {
 }
 
 
-void fly_command(Map **m_ptr, int *wx, int *wy, Character *pc) {
+void fly_command(Map **m_ptr, int *world_x, int *world_y, Character *pc) {
     char buf_x[16], buf_y[16];
     int target_x, target_y;
 
@@ -375,7 +418,7 @@ void fly_command(Map **m_ptr, int *wx, int *wy, Character *pc) {
     noecho();
     curs_set(0);
 
-    mvprintw(0, 0, "");
+    mvprintw(0, 0, " ");
     clrtoeol();
 
     target_x = atoi(buf_x) + 200;
@@ -409,8 +452,8 @@ void fly_command(Map **m_ptr, int *wx, int *wy, Character *pc) {
     dijiksra(w->hiker_dist_map, new_map, &new_map->t[pc->y][pc->x], HIKER);
     dijiksra(w->rival_dist_map, new_map, &new_map->t[pc->y][pc->x], RIVAL);
 
-    *wx = target_x;
-    *wy = target_y;
+    *world_x = target_x;
+    *world_y = target_y;
     *m_ptr = new_map;
 }
 
@@ -562,8 +605,6 @@ int dijiksra(int dist_map[HEIGHT][WIDTH], Map *m, terrain *pc_pos, enum char_typ
         TRY_NEIGHBOR(S,  y+1, x)
         TRY_NEIGHBOR(SW, y+1, x-1)
         TRY_NEIGHBOR(W,  y,   x-1)
-
-        //#undef TRY_NEIGHBOR
     }
 
     for (int i = 0; i < HEIGHT; i++)
