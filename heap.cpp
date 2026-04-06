@@ -1,8 +1,11 @@
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
+#include <vector>
 
-#include "map.h"
 #include "heap.h"
+
+#define HEIGHT 21
+#define WIDTH 80
 
 heap_item *ref_table[HEIGHT][WIDTH];
 
@@ -21,7 +24,7 @@ heap_item* heap_insert(heap *h, void *t, int key){
     heap_item *tmp;
 
     // Checking if malloc returns null.
-    if (!(tmp = malloc(sizeof (*tmp)))) return NULL;
+    if (!(tmp = (heap_item*) malloc(sizeof (*tmp)))) return NULL;
 
 
     tmp->t = t;
@@ -102,7 +105,7 @@ int refactor(heap *h) {
 
     int num_roots = 0;
 
-    heap_item *roots[h->num_elements];
+    std::vector<heap_item*> roots(h->num_elements);
     node = start;
     do {
         roots[num_roots++] = node;

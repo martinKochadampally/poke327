@@ -20,7 +20,7 @@ If malloc fails return -1 */
 int queue_enqueue(queue *q, int x, int y){
     queue_item *tmp;
 
-    if (!(tmp = malloc(sizeof (*tmp)))) { // If malloc fails.
+    if (!(tmp = (queue_item*) malloc(sizeof (*tmp)))) { // If malloc fails.
         return -1;
     }
 

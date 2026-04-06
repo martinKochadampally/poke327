@@ -1,28 +1,43 @@
-2026-03-04 : Updated README. Now I just need to port commits to CHANGELOG
-2026-03-04 : Finished movement code for npcs and implemented a while loop in main so it prints out every move with the time. The time was going negative, but i fixed this by checking when the PC was trying to move to squares with infinite weight.
-2026-03-04 : Changed up the heap so it uses void, so that i can reuse the heap for character movement, I have almost done with placing NPC's, should be moving on to moving them.
-2026-03-04 : I have completed the code, to check the tags and get the value for how many trainers should be present.
-2026-03-03 : Merge pull request #2 from martinKochadampally/assignment-1.03
-2026-03-03 : Minor Changes
-2026-02-25 : Finished the CHANGELOG.
-2026-02-25 : Finished updating the README, now moving to the CHANGELOG.
-2026-02-25 : Finished the commenting out the looping code in main and I add the code to run Dijikstra's. I was initially haveing trouble passing in pointers to my methods, which I later fixed when I reaslised I need to use double pointers and then pass in the address of the pointer. I also ran into an error when I was trying to compile the code after adding the header file for the dijikstra's code, however, after experementing around, I was able to fix this by moving the reference table (a table that holds pointers to all items currently in the heap) from the header file into the dijikstras.c file and then adding a declaration in the header file. No I will move to updating the README and CHANGELOG and possibly add some comments.
-2026-02-25 : Finally finished implementing the fib heap and dijikstras.
-2026-02-17 : Merge pull request #1 from martinKochadampally/assignment-1.02
-2026-02-17 : Added the cost table given to us in a new dijikstras.c file. I also changed the values in the enum for the terrain types and a new enum called npc_type so I can easily calculate the cost. I may have to change the numbering for the npc_type again since it may cause problems printing later on.
-2026-02-16 : I found a bug. I forgot to ensure that a building should be garunteed at (0,0), so i added made probability of a building placed at 0,0 as a 100, fixing the issue.
-2026-02-11 : Updated readme and changelog.
-2026-02-11 : I finished the movement and probability for the buildings code. I ran into a major bug when i was trying to move. When moving east and west the paths werent lining up, however, i figured out the issue. The problem was I was placing the roads wrong. I was placing roads from the east gates position and ending at the west gates, when it should have been the other way around.
-2026-02-09 : Finished place_buldings code. Now I can move onto assignment-1.02
-2026-02-09 : I figured out the problem! I was never instantiating the gates, so the compiler didn't know what those values where. It has now been fixed. Now I will be moving onto the building code.
-2026-02-09 : I made a new c file called map.c, so that I can make a map data structure, and so I have been baisically redoing the assignment 1.01. In implementing it i have run into a few segmentation faults, and I am currently stuck on one for the path placing code. After I finish implementing this and the place buildings code, I will delete the old terrain.c and .h files and then move on to the world code.
-2026-02-06 : Ported git history into the CHANGELOG file.
-2026-02-04 : Cleaned up some code and added comments and README file.
-2026-02-04 : Finished up everything. The seeding wasnt working because I mixed up my index variables for the 2D array. Initially I had decided to seed after putting the roads in, however, this led to there being empy spots inbetween the roads, so I fixed this by adding roads after seeding map. Then I randomly picked a spot along the road and add the pokemart on the vertical road and the pokemon center on the horizontal one. Now everything seems to be working.
-2026-02-03 : There seems to be an infinite loop in my seeding algorithim. I have completed the queue.
-2026-01-31 : Deleted src and bin folders because they just over complicate things.
-2026-01-31 : I have finished implementing the seeding code for the map terrain, but inorder to test it I have to finish the code for queue.c, so that will be what I am doing next.
-2026-01-31 : working on making a queue. i will finish it tommorow.
-2026-01-30 : I ran in to a bug when trying to run my code. It was returning -1 because I accidently put a ! mark before the function name in the if statment.
-2026-01-30 : Added a Makefile, a readme and a changelog. I also starting working on ./src/main with a table of size 21x80 and created the function intitialize_map.
-2026-01-29 : Getting started on assignment 1.01
+* 2026-04-01: Finished implementing fly. Ready to submit (ae69898)
+* 2026-04-01: Finished changing code to C++ and adding classes (90d30e2)
+* 2026-03-30: Merge pull request #4 from martinKochadampally/assignment-1.05 (6ea463b)
+* 2026-03-30: Final updates to the README (289b193)
+* 2026-03-25: I have finished implementing viewing trainers, entering buildings and fighting other NPCs. I have also added colour to the game. Lastly have updated the README and I am getting ready to submit. (7bc72f3)
+* 2026-03-21: Accidentally added the compiled files when I commited, so this commit will just be removing those. (56f05cf)
+* 2026-03-21: Finished all the movement keys. Now I will be moving on to other keys such as space and < and >. (d4450ce)
+* 2026-03-20: I got the code to output the map, correctly, however, I have to press enter after each input. To fix this i will try to use getch() instead. (1092f2b)
+* 2026-03-18: I was struggling to get an output, but i realised I needed to malloc space for the input, and hence i couldn't store the input before using malloc. I also messed up placing getnstr before my mvprintw and after clear, which resulted in the output always being empty. (99cc464)
+* 2026-03-17: cleaned up main added comments and I am about to try to run some ncurses code. (ac4f991)
+* 2026-03-14: Getting started on assignment-1.05 (bba10dc)
+* 2026-03-14: Merge pull request #3 from martinKochadampally/assignment-1.04 (1adf341)
+* 2026-03-14: Delete .DS_Store (9df8559)
+* 2026-03-14: Delete .DS_Store (66ccda4)
+* 2026-03-09: made changes to the CHANGELOG (8738734)
+* 2026-03-04: Updated README. Now I just need to port commits to CHANGELOG (921d48a)
+* 2026-03-04: Finished movement code for npcs and implemented a while loop in main so it prints out every move with the time. The time was going negative, but i fixed this by checking when the PC was trying to move to squares with infinite weight. (6d5df5c)
+* 2026-03-04: Changed up the heap so it uses void, so that i can reuse the heap for character movement, I have almost done with placing NPC's, should be moving on to moving them. (ae9a16b)
+* 2026-03-04: I have completed the code, to check the tags and get the value for how many trainers should be present. (213c839)
+* 2026-03-03: Merge pull request #2 from martinKochadampally/assignment-1.03 (707a58d)
+* 2026-03-03: Minor Changes (fdd8cf3)
+* 2026-02-25: Finished the CHANGELOG. (e297e9d)
+* 2026-02-25: Finished updating the README, now moving to the CHANGELOG. (e8637b8)
+* 2026-02-25: Finished the commenting out the looping code in main and I add the code to run Dijikstra's. I was initially haveing trouble passing in pointers to my methods, which I later fixed when I reaslised I need to use double pointers and then pass in the address of the pointer. I also ran into an error when I was trying to compile the code after adding the header file for the dijikstra's code, however, after experementing around, I was able to fix this by moving the reference table (a table that holds pointers to all items currently in the heap) from the header file into the dijikstras.c file and then adding a declaration in the header file. No I will move to updating the README and CHANGELOG and possibly add some comments. (7d60d68)
+* 2026-02-25: Finally finished implementing the fib heap and dijikstras. (99caa47)
+* 2026-02-17: Merge pull request #1 from martinKochadampally/assignment-1.02 (f480613)
+* 2026-02-17: Added the cost table given to us in a new dijikstras.c file. I also changed the values in the enum for the terrain types and a new enum called npc_type so I can easily calculate the cost. I may have to change the numbering for the npc_type again since it may cause problems printing later on. (e3de1d3)
+* 2026-02-16: I found a bug. I forgot to ensure that a building should be garunteed at (0,0), so i added made probability of a building placed at 0,0 as a 100, fixing the issue. (ed3e2f4)
+* 2026-02-11: Updated readme and changelog. (354523b)
+* 2026-02-11: I finished the movement and probability for the buildings code. I ran into a major bug when i was trying to move. When moving east and west the paths werent lining up, however, i figured out the issue. The problem was I was placing the roads wrong. I was placing roads from the east gates position and ending at the west gates, when it should have been the other way around. (fd43b00)
+* 2026-02-09: Finished place_buldings code. Now I can move onto assignment-1.02 (0135d1b)
+* 2026-02-09: I figured out the problem! I was never instantiating the gates, so the compiler didn't know what those values where. It has now been fixed. Now I will be moving onto the building code. (8aeccfc)
+* 2026-02-09: I made a new c file called map.c, so that I can make a map data structure, and so I have been baisically redoing the assignment 1.01. In implementing it i have run into a few segmentation faults, and I am currently stuck on one for the path placing code. After I finish implementing this and the place buildings code, I will delete the old terrain.c and .h files and then move on to the world code. (bc146c1)
+* 2026-02-06: Ported git history into the CHANGELOG file. (c3eb04b)
+* 2026-02-04: Cleaned up some code and added comments and README file. (bb1011a)
+* 2026-02-04: Finished up everything. The seeding wasnt working because I mixed up my index variables for the 2D array. Initially I had decided to seed after putting the roads in, however, this led to there being empy spots inbetween the roads, so I fixed this by adding roads after seeding map. Then I randomly picked a spot along the road and add the pokemart on the vertical road and the pokemon center on the horizontal one. Now everything seems to be working. (ef2be14)
+* 2026-02-03: There seems to be an infinite loop in my seeding algorithim. I have completed the queue. (a04d783)
+* 2026-01-31: Deleted src and bin folders because they just over complicate things. (72a3101)
+* 2026-01-31: I have finished implementing the seeding code for the map terrain, but inorder to test it I have to finish the code for queue.c, so that will be what I am doing next. (b38ab7a)
+* 2026-01-31: working on making a queue. i will finish it tommorow. (603b56d)
+* 2026-01-30: I ran in to a bug when trying to run my code. It was returning -1 because I accidently put a ! mark before the function name in the if statment. (48e7c9e)
+* 2026-01-30: Added a Makefile, a readme and a changelog. I also starting working on ./src/main with a table of size 21x80 and created the function intitialize_map. (9419866)
+* 2026-01-29: Getting started on assignment 1.01 (938d5ef)
