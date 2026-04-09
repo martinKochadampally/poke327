@@ -2,11 +2,15 @@
 #define POKEMON_H
 
 #include <iostream>
+#include <string>
+#include <vector>
+
+std::string get_db_path();
 
 class pokemon {
     private:
         int id;
-        char *identifier;
+        std::string identifier;
         int species_id;
         int height;
         int weight;
@@ -15,7 +19,7 @@ class pokemon {
         int is_default;
     
     public:
-        pokemon(int ID, char *Identifier, int Species_ID, int Height, int Weight, int Experience, int Order, int Is_default) : 
+        pokemon(int ID, std::string Identifier, int Species_ID, int Height, int Weight, int Experience, int Order, int Is_default) : 
             id(ID), identifier(Identifier), species_id(Species_ID), height(Height), weight(Weight), experience(Experience), order(Order), is_default(Is_default) 
             {}
         
@@ -26,7 +30,7 @@ class pokemon {
 class moves {
     private:
         int id;
-        char *identifier;
+        std::string identifier;
         int generation_id;
         int type_id;	
         int power;	
@@ -41,7 +45,7 @@ class moves {
         int contest_effect_id;	
         int super_contest_effect_id;
     public:
-        moves(int ID, char *Identifier, int Generation_id, int Type_id, int Power, int Pp, int Accuracy, int Priority, int Target_id, int Damage_class_id, int Effect_id, int Effect_chance, int Contest_type_id, int Contest_effect_id, int Super_contest_effect_id) :
+        moves(int ID, std::string Identifier, int Generation_id, int Type_id, int Power, int Pp, int Accuracy, int Priority, int Target_id, int Damage_class_id, int Effect_id, int Effect_chance, int Contest_type_id, int Contest_effect_id, int Super_contest_effect_id) :
             id(ID), identifier(Identifier), generation_id(Generation_id), type_id(Type_id), power(Power), pp(Pp), accuracy(Accuracy), priority(Priority), target_id(Target_id), damage_class_id(Damage_class_id), effect_id(Effect_id), effect_chance(Effect_chance), contest_type_id(Contest_type_id), contest_effect_id(Contest_effect_id), super_contest_effect_id(Super_contest_effect_id)
             {}
         virtual ~moves() {}
@@ -67,11 +71,11 @@ class pokemon_moves {
 class pokemon_species {
     private:
         int id; 
-        char *identifier;
+        std::string identifier;
         int generation_id, evolves_from_species_id,	evolution_chain_id,	color_id, shape_id,	habitat_id,	gender_rate, capture_rate, base_happiness, is_baby,	hatch_counter;	
         int has_gender_differences, growth_rate_id, forms_switchable, is_legendary, is_mythical, order, conquest_order;
     public:
-        pokemon_species(int ID, char *Identifier, int Generation_id, int Evolves_from_species_id, int Evolution_chain_id, int Color_id, int Shape_id, int Habitat_id, int Gender_rate, int Capture_rate, int Base_happiness, int Is_baby, int Hatch_counter, int Has_gender_differences, int Growth_rate_id, int Forms_switchable, int Is_legendary, int Is_mythical, int Order, int Conquest_order) :
+        pokemon_species(int ID, std::string Identifier, int Generation_id, int Evolves_from_species_id, int Evolution_chain_id, int Color_id, int Shape_id, int Habitat_id, int Gender_rate, int Capture_rate, int Base_happiness, int Is_baby, int Hatch_counter, int Has_gender_differences, int Growth_rate_id, int Forms_switchable, int Is_legendary, int Is_mythical, int Order, int Conquest_order) :
             id(ID), identifier(Identifier), generation_id(Generation_id), evolves_from_species_id(Evolves_from_species_id), evolution_chain_id(Evolution_chain_id), color_id(Color_id), shape_id(Shape_id), habitat_id(Habitat_id), gender_rate(Gender_rate), capture_rate(Capture_rate), base_happiness(Base_happiness), is_baby(Is_baby), hatch_counter(Hatch_counter), has_gender_differences(Has_gender_differences), growth_rate_id(Growth_rate_id), forms_switchable(Forms_switchable), is_legendary(Is_legendary), is_mythical(Is_mythical), order(Order), conquest_order(Conquest_order)
             {}
         virtual ~pokemon_species() {}
@@ -93,9 +97,9 @@ class experience {
 class type_names {
     private:
         int type_id, local_language_id;
-        char *name;
+        std::string name;
     public:
-        type_names(int Type_id, int Local_language_id, char *Name) :
+        type_names(int Type_id, int Local_language_id, std::string Name) :
             type_id(Type_id), local_language_id(Local_language_id), name(Name)
             {}
         virtual ~type_names() {}
@@ -116,10 +120,10 @@ class pokemon_stats {
 class stats {
     private:
         int id, damage_class_id;
-        char *identifier;
+        std::string identifier;
         int is_battle_only, game_index;
     public:
-        stats(int ID, int Damage_class_id, char *Identifier, int Is_battle_only, int Game_index) :
+        stats(int ID, int Damage_class_id, std::string Identifier, int Is_battle_only, int Game_index) :
             id(ID), damage_class_id(Damage_class_id), identifier(Identifier), is_battle_only(Is_battle_only), game_index(Game_index)
             {}
         virtual ~stats() {}
@@ -137,6 +141,14 @@ class pokemon_types {
         void print();
 };
 
-
+void parse_pokemon(std::vector<pokemon*> &v, std::string path);
+void parse_moves(std::vector<moves*> &v, std::string path);
+void parse_pokemon_moves(std::vector<pokemon_moves*> &v, std::string path);
+void parse_pokemon_species(std::vector<pokemon_species*> &v, std::string path);
+void parse_experience(std::vector<experience*> &v, std::string path);
+void parse_type_names(std::vector<type_names*> &v, std::string path);
+void parse_pokemon_stats(std::vector<pokemon_stats*> &v, std::string path);
+void parse_stats(std::vector<stats*> &v, std::string path);
+void parse_pokemon_types(std::vector<pokemon_types*> &v, std::string path);
 
 #endif
