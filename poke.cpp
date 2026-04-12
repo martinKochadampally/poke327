@@ -9,16 +9,17 @@
 #include "queue.h"
 #include "heap.h"
 #include "map.h"
+#include "pokemon.h"
 
 #define TRY_NEIGHBOR(dir, ny, nx) \
-            if (t->dir && cost_table[npc%10][t->dir->val] != __INT_MAX__) { \
-                new_cost = cost + cost_table[npc%10][t->dir->val]; \
-                if (new_cost < dist_map[ny][nx]) { \
-                    dist_map[ny][nx] = new_cost; \
-                    if (ref_table[ny][nx]) decrease_key(&h, ref_table[ny][nx], new_cost); \
-                    else if (!(ref_table[ny][nx] = heap_insert(&h, t->dir, new_cost))) return -1; \
-                } \
-            }
+    if (t->dir && cost_table[npc%10][t->dir->val] != __INT_MAX__) { \
+        new_cost = cost + cost_table[npc%10][t->dir->val]; \
+        if (new_cost < dist_map[ny][nx]) { \
+            dist_map[ny][nx] = new_cost; \
+            if (ref_table[ny][nx]) decrease_key(&h, ref_table[ny][nx], new_cost); \
+            else if (!(ref_table[ny][nx] = heap_insert(&h, t->dir, new_cost))) return -1; \
+        } \
+    }
 
 int cost_table[5][11] = {
     {10,         10,         10,         20,         25,         __INT_MAX__, __INT_MAX__, __INT_MAX__, 10,         10,         __INT_MAX__},
@@ -73,18 +74,74 @@ int main(int argc, char *argv[]) {
     int retval = 0;
     const char *errmsg = NULL;
 
+    if (argc == 2) {
+        std::string db_path = get_db_path();
+        if (db_path.empty()) {
+            std::cerr << "Could not find pokedex database." << std::endl;
+            return 1;
+        }
+
+        if (!strcmp(argv[1], "pokemon")) {
+            std::vector<pokemon*> v;
+            parse_pokemon(v, db_path);
+            for (auto p : v) { p->print(); delete p; }
+            return 0;
+        } else if (!strcmp(argv[1], "moves")) {
+            std::vector<moves*> v;
+            parse_moves(v, db_path);
+            for (auto m : v) { m->print(); delete m; }
+            return 0;
+        } else if (!strcmp(argv[1], "pokemon_moves")) {
+            std::vector<pokemon_moves*> v;
+            parse_pokemon_moves(v, db_path);
+            for (auto pm : v) { pm->print(); delete pm; }
+            return 0;
+        } else if (!strcmp(argv[1], "pokemon_species")) {
+            std::vector<pokemon_species*> v;
+            parse_pokemon_species(v, db_path);
+            for (auto ps : v) { ps->print(); delete ps; }
+            return 0;
+        } else if (!strcmp(argv[1], "experience")) {
+            std::vector<experience*> v;
+            parse_experience(v, db_path);
+            for (auto e : v) { e->print(); delete e; }
+            return 0;
+        } else if (!strcmp(argv[1], "type_names")) {
+            std::vector<type_names*> v;
+            parse_type_names(v, db_path);
+            for (auto tn : v) { tn->print(); delete tn; }
+            return 0;
+        } else if (!strcmp(argv[1], "pokemon_stats")) {
+            std::vector<pokemon_stats*> v;
+            parse_pokemon_stats(v, db_path);
+            for (auto ps : v) { ps->print(); delete ps; }
+            return 0;
+        } else if (!strcmp(argv[1], "stats")) {
+            std::vector<stats*> v;
+            parse_stats(v, db_path);
+            for (auto s : v) { s->print(); delete s; }
+            return 0;
+        } else if (!strcmp(argv[1], "pokemon_types")) {
+            std::vector<pokemon_types*> v;
+            parse_pokemon_types(v, db_path);
+            for (auto pt : v) { pt->print(); delete pt; }
+            return 0;
+        } else {
+            std::cerr << "Invalid database name: " << argv[1] << std::endl;
+            return 1;
+        }
+    }
+
     // World Traversal Variables.
     int world_x, world_y;
     Map *m;
     Character *c;
-    
+
     // User Input.
     int input = ' ';
 
     Character *pc = NULL;
     int cost;
-
-    queue visited_maps;
 
     if (argc == 1) {
         num_trainers = 10;
@@ -100,7 +157,6 @@ int main(int argc, char *argv[]) {
         retval = -2;
         goto ret_err;
     }
-
     if (!(w = new World())) { 
         errmsg = "Creating world failed."; retval = -3; 
         goto ret_err; 

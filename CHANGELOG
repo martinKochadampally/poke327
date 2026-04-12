@@ -1,3 +1,6 @@
+* 2026-04-08: Finished adding code for checking file location and loading data. (ef1b9d1)
+* 2026-04-08: Added classes for all the .csv files. (190c3ba)
+* 2026-04-06: Modified CHANGELOG (a4a1575)
 * 2026-04-01: Finished implementing fly. Ready to submit (ae69898)
 * 2026-04-01: Finished changing code to C++ and adding classes (90d30e2)
 * 2026-03-30: Merge pull request #4 from martinKochadampally/assignment-1.05 (6ea463b)
