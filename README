@@ -5,16 +5,27 @@ This project is meant to be a Pokemon-like game.
 You can explore a 400 by 400 world with various types of terrain, and fight with other NPC trainers.
 
 
-## New Features: 1.06
-    -   All code has now been changed so that it runs with g++.
-    -   The make file has been updated accordingly.
-    -   The world traversal code has been re-introduced.
+## New Features: 1.07
+    - You can add pokemon from csv files by using one of the tags below. Files mus be stored in the following locations:
+        -/share/cs327/pokedex/pokedex/data/csv/
+        -$HOME/.poke327/pokedex/pokedex/data/csv/
+    - With tags:
+        * pokemon
+        * moves
+        * pokemon_moves
+        * pokemon_species
+        * experience
+        * type_names
+        * pokemon_stats
+        * stats
+        * pokemon_types
+
 
 
 
 ## Running Instructions
 1. Change directories(cd) into the below folder: 
-Bash ```cd kochadampally_martin.assignment-1.05```
+Bash ```cd kochadampally_martin.assignment-1.07```
 
 2. Clean the folder:
 Bash ```make clean```
@@ -28,6 +39,10 @@ Bash ```./poke```
 
 
 ## Previous Updates
+### 1.06
+    -   All code has now been changed so that it runs with g++.
+    -   The make file has been updated accordingly.
+    -   The world traversal code has been re-introduced.
 ### 1.05
     -   Instead of outputting the game into the terminal, I have implemented it using NCURSES.
     -   The new controls are:
