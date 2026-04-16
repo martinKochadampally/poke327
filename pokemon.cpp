@@ -11,13 +11,11 @@
 std::string get_db_path() {
     struct stat sb;
 
-    // 1. Check /share/cs327
     std::string path1 = "/share/cs327/pokedex/pokedex/data/csv/";
     if (stat(path1.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
         return path1;
     }
 
-    // 2. Check $HOME/.poke327
     char *home = getenv("HOME");
     if (home) {
         std::string path2 = std::string(home) + "/.poke327/pokedex/pokedex/data/csv/";
@@ -312,3 +310,144 @@ void pokemon_types::print() {
               << (type_id == INT_MAX ? "" : std::to_string(type_id)) << ","
               << (slot == INT_MAX ? "" : std::to_string(slot)) << std::endl;
 }
+
+std::vector<pokemon *> pokemon_db;
+std::vector<moves *> moves_db;
+std::vector<pokemon_moves *> pokemon_moves_db;
+std::vector<pokemon_species *> pokemon_species_db;
+std::vector<experience *> experience_db;
+std::vector<type_names *> type_names_db;
+std::vector<pokemon_stats *> pokemon_stats_db;
+std::vector<stats *> stats_db;
+std::vector<pokemon_types *> pokemon_types_db;
+
+void load_pokemon_data() {
+    std::string path = get_db_path();
+    parse_pokemon(pokemon_db, path);
+    parse_moves(moves_db, path);
+    parse_pokemon_moves(pokemon_moves_db, path);
+    parse_pokemon_species(pokemon_species_db, path);
+    parse_experience(experience_db, path);
+    parse_type_names(type_names_db, path);
+    parse_pokemon_stats(pokemon_stats_db, path);
+    parse_stats(stats_db, path);
+    parse_pokemon_types(pokemon_types_db, path);
+}
+
+Pokemon::Pokemon(int level) : level(level) {
+    int index = rand() % pokemon_db.size();
+    pokemon_species_id = pokemon_db[index]->id;
+    
+    for (int i = 0; i < 6; i++) {
+        iv[i] = rand() % 16;
+    }
+    
+    shiny = (rand() % 8192 == 0);
+    gender = (rand() % 2 == 0) ? gender_male : gender_female;
+
+    int base_stats[6] = {0};
+    for (auto ps : pokemon_stats_db) {
+        if (ps->pokemon_id == pokemon_species_id) {
+            if (ps->stat_id >= 1 && ps->stat_id <= 6) {
+                base_stats[ps->stat_id - 1] = ps->base_stat;
+            }
+        }
+    }
+    
+    stat[stat_hp] = ((base_stats[0] + iv[0]) * 2 * level) / 100 + level + 10;
+    for (int i = 1; i < 6; i++) {
+        stat[i] = ((base_stats[i] + iv[i]) * 2 * level) / 100 + 5;
+    }
+    
+    std::vector<int> possible_moves;
+    while (true) {
+        for (auto pm : pokemon_moves_db) {
+            if (pm->pokemon_id == pokemon_species_id && pm->pokemon_move_method_id == 1 && pm->level <= level) {
+                possible_moves.push_back(pm->move_id);
+            }
+        }
+        if (possible_moves.size() > 0) break;
+        level++;
+        // Recalculate stats if level increased
+        stat[stat_hp] = ((base_stats[0] + iv[0]) * 2 * level) / 100 + level + 10;
+        for (int i = 1; i < 6; i++) {
+            stat[i] = ((base_stats[i] + iv[i]) * 2 * level) / 100 + 5;
+        }
+    }
+    
+    if (possible_moves.size() == 1) {
+        pokemon_move_id[0] = possible_moves[0];
+        pokemon_move_id[1] = -1;
+    } else {
+        int m1 = rand() % possible_moves.size();
+        int m2 = rand() % (possible_moves.size() - 1);
+        if (m2 >= m1) m2++;
+        pokemon_move_id[0] = possible_moves[m1];
+        pokemon_move_id[1] = possible_moves[m2];
+    }
+}
+
+Pokemon::Pokemon(int species_id, int level) : pokemon_species_id(species_id), level(level) {
+    for (int i = 0; i < 6; i++) {
+        iv[i] = rand() % 16;
+    }
+    
+    shiny = (rand() % 8192 == 0);
+    gender = (rand() % 2 == 0) ? gender_male : gender_female;
+
+    int base_stats[6] = {0};
+    for (auto ps : pokemon_stats_db) {
+        if (ps->pokemon_id == pokemon_species_id) {
+            if (ps->stat_id >= 1 && ps->stat_id <= 6) {
+                base_stats[ps->stat_id - 1] = ps->base_stat;
+            }
+        }
+    }
+    
+    stat[stat_hp] = ((base_stats[0] + iv[0]) * 2 * level) / 100 + level + 10;
+    for (int i = 1; i < 6; i++) {
+        stat[i] = ((base_stats[i] + iv[i]) * 2 * level) / 100 + 5;
+    }
+    
+    std::vector<int> possible_moves;
+    while (true) {
+        for (auto pm : pokemon_moves_db) {
+            if (pm->pokemon_id == pokemon_species_id && pm->pokemon_move_method_id == 1 && pm->level <= level) {
+                possible_moves.push_back(pm->move_id);
+            }
+        }
+        if (possible_moves.size() > 0) break;
+        level++;
+        stat[stat_hp] = ((base_stats[0] + iv[0]) * 2 * level) / 100 + level + 10;
+        for (int i = 1; i < 6; i++) {
+            stat[i] = ((base_stats[i] + iv[i]) * 2 * level) / 100 + 5;
+        }
+    }
+    
+    if (possible_moves.size() == 1) {
+        pokemon_move_id[0] = possible_moves[0];
+        pokemon_move_id[1] = -1;
+    } else {
+        int m1 = rand() % possible_moves.size();
+        int m2 = rand() % (possible_moves.size() - 1);
+        if (m2 >= m1) m2++;
+        pokemon_move_id[0] = possible_moves[m1];
+        pokemon_move_id[1] = possible_moves[m2];
+    }
+}
+
+const char *Pokemon::get_species() const {
+    for (auto p : pokemon_db) {
+        if (p->id == pokemon_species_id) return p->identifier.c_str();
+    }
+    return "Unknown";
+}
+
+const char *Pokemon::get_move(int i) const {
+    if (i < 0 || i > 1 || pokemon_move_id[i] == -1) return "";
+    for (auto m : moves_db) {
+        if (m->id == pokemon_move_id[i]) return m->identifier.c_str();
+    }
+    return "Unknown";
+}
+

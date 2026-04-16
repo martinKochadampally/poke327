@@ -1,8 +1,12 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include <vector>
+
 #define HEIGHT 21
 #define WIDTH 80
+
+class Pokemon;
 
 enum terrain_type{
     EMPTY = -1,
@@ -46,6 +50,7 @@ public:
     int seq_num;
     int next_turn;
     int dir[2];
+    std::vector<Pokemon *> pokemon;
 
     Character(char symbol, char_type type, int x, int y) : symbol(symbol), type(type), x(x), y(y), seq_num(0), next_turn(0)
     {

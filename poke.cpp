@@ -43,30 +43,8 @@ void trainer_list(Map *m, Character *pc, int NUM_TRAINERS);
 void enter_building(const char *building_name);
 void battle_interface(Character *c);
 void fly_command(Map **m, int *world_x, int *world_y, Character *pc);
-
-
-// Returns an existing map or generates a new one.
-Map *get_or_create_map(int world_x, int world_y) {
-    if (world_x < 0 || world_x > 400 || world_y < 0 || world_y > 400) return NULL;
-
-    if (w->maps[world_y][world_x]) return w->maps[world_y][world_x];
-
-    Map *N = (world_y > 0)   ? w->maps[world_y-1][world_x] : NULL;
-    Map *S = (world_y < 400) ? w->maps[world_y+1][world_x] : NULL;
-    Map *E = (world_x < 400) ? w->maps[world_y][world_x+1] : NULL;
-    Map *W = (world_x > 0)   ? w->maps[world_y][world_x-1] : NULL;
-
-
-    if ( !(w->maps[world_y][world_x] = new Map(world_x, world_y, N, S, E, W)) ) {
-        return NULL;
-    }
-
-    w->maps[world_y][world_x]->seed();
-    w->maps[world_y][world_x]->place_paths_and_buildings();
-    place_npcs(w->maps[world_y][world_x], num_trainers);
-
-    return w->maps[world_y][world_x];
-}
+Map *get_or_create_map(int world_x, int world_y);
+void starter_selection(Character *pc);
 
 
 int main(int argc, char *argv[]) {
@@ -164,6 +142,8 @@ int main(int argc, char *argv[]) {
 
     srand(time(NULL));
 
+    load_pokemon_data();
+
     world_x = world_y = 200;
 
     // Generate starting map.
@@ -188,6 +168,8 @@ int main(int argc, char *argv[]) {
     heap_insert(&w->maps[world_y][world_x]->char_heap, pc, pc->next_turn);
 
     init_terminal();
+
+    starter_selection(pc);
 
     {
         m = w->maps[world_y][world_x];
@@ -297,6 +279,63 @@ int main(int argc, char *argv[]) {
         return retval;
 }
 
+// Returns an existing map or generates a new one.
+Map *get_or_create_map(int world_x, int world_y) {
+    if (world_x < 0 || world_x > 400 || world_y < 0 || world_y > 400) return NULL;
+
+    if (w->maps[world_y][world_x]) return w->maps[world_y][world_x];
+
+    Map *N = (world_y > 0)   ? w->maps[world_y-1][world_x] : NULL;
+    Map *S = (world_y < 400) ? w->maps[world_y+1][world_x] : NULL;
+    Map *E = (world_x < 400) ? w->maps[world_y][world_x+1] : NULL;
+    Map *W = (world_x > 0)   ? w->maps[world_y][world_x-1] : NULL;
+
+
+    if ( !(w->maps[world_y][world_x] = new Map(world_x, world_y, N, S, E, W)) ) {
+        return NULL;
+    }
+
+    w->maps[world_y][world_x]->seed();
+    w->maps[world_y][world_x]->place_paths_and_buildings();
+    place_npcs(w->maps[world_y][world_x], num_trainers);
+
+    return w->maps[world_y][world_x];
+}
+
+
+void starter_selection(Character *pc) {
+    int starters[3];
+    starters[0] = pokemon_db[rand() % pokemon_db.size()]->id;
+    starters[1] = pokemon_db[rand() % pokemon_db.size()]->id;
+    starters[2] = pokemon_db[rand() % pokemon_db.size()]->id;
+
+    Pokemon *p0 = new Pokemon(starters[0], 1);
+    Pokemon *p1 = new Pokemon(starters[1], 1);
+    Pokemon *p2 = new Pokemon(starters[2], 1);
+
+    int choice = 0;
+    while (1) {
+        clear();
+        mvprintw(2, 10, "Choose your starter Pokemon:");
+        mvprintw(4, 12, "%s %s", choice == 0 ? "->" : "  ", p0->get_species());
+        mvprintw(5, 12, "%s %s", choice == 1 ? "->" : "  ", p1->get_species());
+        mvprintw(6, 12, "%s %s", choice == 2 ? "->" : "  ", p2->get_species());
+        refresh();
+
+        int ch = getch();
+        if (ch == KEY_UP || ch == 'k' || ch == '8') {
+            choice = (choice + 2) % 3;
+        } else if (ch == KEY_DOWN || ch == 'j' || ch == '2') {
+            choice = (choice + 1) % 3;
+        } else if (ch == '\n' || ch == ' ' || ch == '5') {
+            if (choice == 0) { pc->pokemon.push_back(p0); delete p1; delete p2; }
+            else if (choice == 1) { pc->pokemon.push_back(p1); delete p0; delete p2; }
+            else { pc->pokemon.push_back(p2); delete p0; delete p1; }
+            break;
+        }
+    }
+}
+
 
 int place_npcs(Map *m, int num_trainers) {
     int i, x, y;
@@ -329,6 +368,26 @@ int place_npcs(Map *m, int num_trainers) {
         c->seq_num = i + 1;
         c->next_turn = 0;
 
+        // Generate pokemon for NPC
+        int distance = abs(m->pos_x - 200) + abs(m->pos_y - 200);
+        int min_l, max_l;
+        if (distance <= 200) {
+            min_l = 1;
+            max_l = (distance < 2) ? 1 : distance / 2;
+        } else {
+            min_l = (distance - 200) / 2;
+            max_l = 100;
+        }
+        if (min_l < 1) min_l = 1;
+        if (max_l < min_l) max_l = min_l;
+
+        int level = (min_l == max_l) ? min_l : min_l + rand() % (max_l - min_l + 1);
+        c->pokemon.push_back(new Pokemon(level));
+        while (c->pokemon.size() < 6 && rand() % 100 < 60) {
+            level = (min_l == max_l) ? min_l : min_l + rand() % (max_l - min_l + 1);
+            c->pokemon.push_back(new Pokemon(level));
+        }
+
         if (type == PACER || type == WANDERER) {
             if (rand() % 2) { c->dir[0] = (rand() % 2) ? 1 : -1; c->dir[1] = 0; }
             else             { c->dir[0] = 0; c->dir[1] = (rand() % 2) ? 1 : -1; }
@@ -343,6 +402,27 @@ int place_npcs(Map *m, int num_trainers) {
     return 0;
 }
 
+
+void wild_encounter(Pokemon *p) {
+    clear();
+    mvprintw(2, 10, "A wild %s appeared!", p->get_species());
+    mvprintw(3, 10, "Level: %d  Gender: %s  Shiny: %s", p->get_level(), p->get_gender_string(), p->is_shiny() ? "Yes" : "No");
+    mvprintw(5, 10, "Stats:");
+    mvprintw(6, 12, "HP:  %d (IV: %d)", p->get_hp(), p->get_iv_hp());
+    mvprintw(7, 12, "ATK: %d (IV: %d)", p->get_atk(), p->get_iv_atk());
+    mvprintw(8, 12, "DEF: %d (IV: %d)", p->get_def(), p->get_iv_def());
+    mvprintw(9, 12, "SPATK: %d (IV: %d)", p->get_spatk(), p->get_iv_spatk());
+    mvprintw(10, 12, "SPDEF: %d (IV: %d)", p->get_spdef(), p->get_iv_spdef());
+    mvprintw(11, 12, "SPEED: %d (IV: %d)", p->get_speed(), p->get_iv_speed());
+    mvprintw(13, 10, "Moves:");
+    mvprintw(14, 12, "%s", p->get_move(0));
+    const char *m2 = p->get_move(1);
+    if (m2[0]) mvprintw(15, 12, "%s", m2);
+
+    mvprintw(18, 10, "Press any key to continue...");
+    refresh();
+    getch();
+}
 
 // Handles gate traversal and normal movement.
 int move_pc(Map **m_ptr, int *world_x, int *world_y, Character *player, int dy, int dx) {
@@ -428,6 +508,26 @@ int move_pc(Map **m_ptr, int *world_x, int *world_y, Character *player, int dy, 
 
         dijiksra(w->hiker_dist_map, m, &m->t[player->y][player->x], HIKER);
         dijiksra(w->rival_dist_map, m, &m->t[player->y][player->x], RIVAL);
+
+        // If we are standing on tall grass, check if pokemon is there.
+        if (m->t[ny][nx].val == TALL_GRASS && rand() % 10 == 0) {
+            int distance = abs(*world_x - 200) + abs(*world_y - 200);
+            int min_l, max_l;
+            if (distance <= 200) {
+                min_l = 1;
+                max_l = (distance < 2) ? 1 : distance / 2;
+            } else {
+                min_l = (distance - 200) / 2;
+                max_l = 100;
+            }
+            if (min_l < 1) min_l = 1;
+            if (max_l < min_l) max_l = min_l;
+
+            int level = (min_l == max_l) ? min_l : min_l + rand() % (max_l - min_l + 1);
+            Pokemon *p = new Pokemon(level);
+            wild_encounter(p);
+            delete p;
+        }
     } else {
         switch (m->t[ny][nx].val) {
             case MOUNTAIN: 
@@ -721,15 +821,25 @@ void trainer_list(Map *m, Character *pc, int NUM_TRAINERS) {
 }
 
 void battle_interface(Character *c) {
-    int input = 0;
     NPC *npc = (NPC *)c;
+    int input = 0;
+
     while (input != 27) {
         clear();
-        mvprintw(10, 0, "A TRAINER APPEARS!");
-        mvprintw(12, 0, "Trainer: %c", c->symbol);
-        mvprintw(14, 0, "BATTLE PLACEHOLDER. Press ESC to win.");
+        mvprintw(1, 10, "BATTLE WITH TRAINER %c", c->symbol);
+        int line = 3;
+        for (auto p : npc->pokemon) {
+            mvprintw(line++, 2, "%s lvl:%d %s %s stats:[%d,%d,%d,%d,%d,%d] moves:[%s, %s]", 
+                     p->get_species(), p->get_level(), p->get_gender_string(), 
+                     p->is_shiny() ? "shiny" : "",
+                     p->get_hp(), p->get_atk(), p->get_def(), p->get_spatk(), p->get_spdef(), p->get_speed(),
+                     p->get_move(0), p->get_move(1));
+            if (line > 20) break; // prevent overflow
+        }
+        mvprintw(22, 10, "Press ESC to exit battle.");
         refresh();
         input = getch();
     }
+    
     npc->is_defeated = true;
 }

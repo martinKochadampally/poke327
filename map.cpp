@@ -99,9 +99,9 @@ int Map::seed() {
         queue_dequeue(&q, &x, &y);
         current = &t[y][x];
 
-        if (current->N && current->N->val == EMPTY) {
-            current->N->val = current->val;
-            if (queue_enqueue(&q, x, y-1)) return -1;
+        if (current->E && current->E->val == EMPTY) {
+            current->E->val = current->val;
+            if (queue_enqueue(&q, x+1, y)) return -1;
         }
         if (current->S && current->S->val == EMPTY) {
             current->S->val = current->val;
@@ -111,9 +111,9 @@ int Map::seed() {
             current->W->val = current->val;
             if (queue_enqueue(&q, x-1, y)) return -1;
         }
-        if (current->E && current->E->val == EMPTY) {
-            current->E->val = current->val;
-            if (queue_enqueue(&q, x+1, y)) return -1;
+        if (current->N && current->N->val == EMPTY) {
+            current->N->val = current->val;
+            if (queue_enqueue(&q, x, y-1)) return -1;
         }
     }
 
