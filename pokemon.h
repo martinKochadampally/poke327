@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <climits>
 
 std::string get_db_path();
 
@@ -152,7 +153,8 @@ private:
   int level;
   int iv[6];
   int stat[6];
-  int pokemon_move_id[2];
+  int pokemon_move_id[4];
+  int current_hp;
   pokemon_gender gender;
   bool shiny;
 public:
@@ -160,7 +162,10 @@ public:
   Pokemon(int species_id, int level);
   int get_level() const { return level; }
   const char *get_species() const;
+  int get_species_id() const { return pokemon_species_id; }
   int get_hp() const { return stat[stat_hp]; }
+  int get_current_hp() const { return current_hp; }
+  void set_current_hp(int hp) { current_hp = hp; }
   int get_atk() const { return stat[stat_atk]; }
   int get_def() const { return stat[stat_def]; }
   int get_spatk() const { return stat[stat_spatk]; }
@@ -175,7 +180,10 @@ public:
   const char *get_gender_string() const { return gender == gender_female ? "female" : "male"; }
   bool is_shiny() const { return shiny; }
   const char *get_move(int i) const;
+  int get_move_id(int i) const { return pokemon_move_id[i]; }
 };
+
+int calculate_damage(Pokemon *attacker, Pokemon *defender, int move_idx);
 
 extern std::vector<pokemon *> pokemon_db;
 extern std::vector<moves *> moves_db;
@@ -187,7 +195,20 @@ extern std::vector<pokemon_stats *> pokemon_stats_db;
 extern std::vector<stats *> stats_db;
 extern std::vector<pokemon_types *> pokemon_types_db;
 
+class type_efficacy {
+    public:
+        int damage_type_id, target_type_id, damage_factor;
+        type_efficacy(int Damage_type_id, int Target_type_id, int Damage_factor) :
+            damage_type_id(Damage_type_id), target_type_id(Target_type_id), damage_factor(Damage_factor)
+            {}
+        virtual ~type_efficacy() {}
+        void print();
+};
+
+extern std::vector<type_efficacy *> type_efficacy_db;
+
 void load_pokemon_data();
+void free_pokemon_data();
 
 void parse_pokemon(std::vector<pokemon*> &v, std::string path);
 void parse_moves(std::vector<moves*> &v, std::string path);
@@ -198,5 +219,6 @@ void parse_type_names(std::vector<type_names*> &v, std::string path);
 void parse_pokemon_stats(std::vector<pokemon_stats*> &v, std::string path);
 void parse_stats(std::vector<stats*> &v, std::string path);
 void parse_pokemon_types(std::vector<pokemon_types*> &v, std::string path);
+void parse_type_efficacy(std::vector<type_efficacy*> &v, std::string path);
 
 #endif

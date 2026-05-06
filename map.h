@@ -65,7 +65,15 @@ inline Character::~Character() {}
 
 class PC : public Character {
 public:
-    PC(int x, int y) : Character('@', char_type::PC_TYPE, x, y) {}
+    int potions;
+    int revives;
+    int pokeballs;
+
+    PC(int x, int y) : Character('@', char_type::PC_TYPE, x, y) {
+        potions = 5;
+        revives = 5;
+        pokeballs = 5;
+    }
     ~PC() override {}
     void takeTurn(class Map *m) override {}
 };

@@ -40,11 +40,14 @@ int  move_pc(Map **m, int *world_x, int *world_y, Character *player, int dy, int
 void move_npc(Map *m, Character *c);
 int  dijiksra(int dist_map[HEIGHT][WIDTH], Map *m, terrain *pc_pos, enum char_type npc);
 void trainer_list(Map *m, Character *pc, int NUM_TRAINERS);
-void enter_building(const char *building_name);
-void battle_interface(Character *c);
+void enter_building(Character *c, const char *building_name);
+void battle_interface(Character *pc, Character *npc);
 void fly_command(Map **m, int *world_x, int *world_y, Character *pc);
 Map *get_or_create_map(int world_x, int world_y);
 void starter_selection(Character *pc);
+void bag_interface(Character *pc);
+bool wild_encounter(Character *pc, Pokemon *p);
+bool battle_loop(Character *pc_char, Character *npc_char, Pokemon *wild_p);
 
 
 int main(int argc, char *argv[]) {
@@ -142,11 +145,13 @@ int main(int argc, char *argv[]) {
 
     srand(time(NULL));
 
+
     load_pokemon_data();
 
     world_x = world_y = 200;
 
     // Generate starting map.
+
     if (!get_or_create_map(world_x, world_y)) {
         errmsg = "Failed to create map.";
         retval = -4;
@@ -154,11 +159,13 @@ int main(int argc, char *argv[]) {
     }
 
     // Place PC on starting map.
+
     if (w->maps[world_y][world_x]->place_pc(&pc)) {
         errmsg = "Failed to place player character.";
         retval = -4;
         goto cleanup;
     }
+
 
     dijiksra(w->hiker_dist_map, w->maps[world_y][world_x], &w->maps[world_y][world_x]->t[pc->y][pc->x], HIKER);
     dijiksra(w->rival_dist_map, w->maps[world_y][world_x], &w->maps[world_y][world_x]->t[pc->y][pc->x], RIVAL);
@@ -167,7 +174,9 @@ int main(int argc, char *argv[]) {
     pc->next_turn = 0;
     heap_insert(&w->maps[world_y][world_x]->char_heap, pc, pc->next_turn);
 
+
     init_terminal();
+
 
     starter_selection(pc);
 
@@ -206,14 +215,17 @@ int main(int argc, char *argv[]) {
                         break;
                     case '>':
                         if (m->t[c->y][c->x].val == POKEMART)
-                            enter_building("Pokemart");
+                            enter_building(c, "Pokemart");
                         else if (m->t[c->y][c->x].val == POKECENTER)
-                            enter_building("Pokemon Center");
+                            enter_building(c, "Pokemon Center");
                         else
                             mvprintw(0, 0, "You must be standing on a 'M' or 'C' to enter.");
                         goto update_changes;
                     case 't':
                         trainer_list(m, c, num_trainers);
+                        goto update_changes;
+                    case 'B':
+                        bag_interface(c);
                         goto update_changes;
                     case 'f':
                         fly_command(&m, &world_x, &world_y, c);
@@ -244,8 +256,7 @@ int main(int argc, char *argv[]) {
                 goto cleanup; 
             }
 
-            // If extracted character is PC, update c to track it.
-            if (c->type == PC_TYPE) pc = c;
+            if (c->type == PC_TYPE) pc = (PC *)c;
 
             update_changes:
                 output_map(m);
@@ -273,6 +284,7 @@ int main(int argc, char *argv[]) {
             }
         }
         delete w;
+        free_pokemon_data();
 
     ret_err:
         if (errmsg) fprintf(stderr, "Error: %s\n", errmsg);
@@ -295,9 +307,13 @@ Map *get_or_create_map(int world_x, int world_y) {
         return NULL;
     }
 
+
     w->maps[world_y][world_x]->seed();
+
     w->maps[world_y][world_x]->place_paths_and_buildings();
+
     place_npcs(w->maps[world_y][world_x], num_trainers);
+
 
     return w->maps[world_y][world_x];
 }
@@ -358,11 +374,40 @@ int place_npcs(Map *m, int num_trainers) {
             }
         }
 
-        do {
+        // Try random placement first
+        bool placed = false;
+        for (int attempts = 0; attempts < 1000; attempts++) {
             x = 1 + rand() % (WIDTH - 2);
             y = 1 + rand() % (HEIGHT - 2);
-        } while (m->ch[y][x] || m->t[y][x].val == GATE || m->t[y][x].val == POKECENTER ||
-                 m->t[y][x].val == POKEMART || cost_table[type % 10][m->t[y][x].val] == __INT_MAX__);
+            if (!m->ch[y][x] &&
+                m->t[y][x].val != GATE &&
+                m->t[y][x].val != POKECENTER &&
+                m->t[y][x].val != POKEMART &&
+                cost_table[type % 10][m->t[y][x].val] != __INT_MAX__) {
+                placed = true;
+                break;
+            }
+        }
+
+        // Fall back to exhaustive search
+        if (!placed) {
+            for (int ty = 1; ty < HEIGHT - 1 && !placed; ty++) {
+                for (int tx = 1; tx < WIDTH - 1 && !placed; tx++) {
+                    if (!m->ch[ty][tx] &&
+                        m->t[ty][tx].val != GATE &&
+                        m->t[ty][tx].val != POKECENTER &&
+                        m->t[ty][tx].val != POKEMART &&
+                        cost_table[type % 10][m->t[ty][tx].val] != __INT_MAX__) {
+                        x = tx;
+                        y = ty;
+                        placed = true;
+                    }
+                }
+            }
+        }
+
+        // Skip this NPC if no valid position exists
+        if (!placed) continue;
 
         NPC *c = new NPC(sym, type, x, y);
         c->seq_num = i + 1;
@@ -403,25 +448,8 @@ int place_npcs(Map *m, int num_trainers) {
 }
 
 
-void wild_encounter(Pokemon *p) {
-    clear();
-    mvprintw(2, 10, "A wild %s appeared!", p->get_species());
-    mvprintw(3, 10, "Level: %d  Gender: %s  Shiny: %s", p->get_level(), p->get_gender_string(), p->is_shiny() ? "Yes" : "No");
-    mvprintw(5, 10, "Stats:");
-    mvprintw(6, 12, "HP:  %d (IV: %d)", p->get_hp(), p->get_iv_hp());
-    mvprintw(7, 12, "ATK: %d (IV: %d)", p->get_atk(), p->get_iv_atk());
-    mvprintw(8, 12, "DEF: %d (IV: %d)", p->get_def(), p->get_iv_def());
-    mvprintw(9, 12, "SPATK: %d (IV: %d)", p->get_spatk(), p->get_iv_spatk());
-    mvprintw(10, 12, "SPDEF: %d (IV: %d)", p->get_spdef(), p->get_iv_spdef());
-    mvprintw(11, 12, "SPEED: %d (IV: %d)", p->get_speed(), p->get_iv_speed());
-    mvprintw(13, 10, "Moves:");
-    mvprintw(14, 12, "%s", p->get_move(0));
-    const char *m2 = p->get_move(1);
-    if (m2[0]) mvprintw(15, 12, "%s", m2);
-
-    mvprintw(18, 10, "Press any key to continue...");
-    refresh();
-    getch();
+bool wild_encounter(Character *pc, Pokemon *p) {
+    return battle_loop(pc, NULL, p);
 }
 
 // Handles gate traversal and normal movement.
@@ -496,7 +524,7 @@ int move_pc(Map **m_ptr, int *world_x, int *world_y, Character *player, int dy, 
     // Normal movement.
     if (m->ch[ny][nx]) {
         NPC *target = (NPC *)m->ch[ny][nx];
-        if (!target->is_defeated) battle_interface(target);
+        if (!target->is_defeated) battle_interface(player, target);
         return -1;
     }
 
@@ -525,8 +553,7 @@ int move_pc(Map **m_ptr, int *world_x, int *world_y, Character *player, int dy, 
 
             int level = (min_l == max_l) ? min_l : min_l + rand() % (max_l - min_l + 1);
             Pokemon *p = new Pokemon(level);
-            wild_encounter(p);
-            delete p;
+            if (!wild_encounter(player, p)) delete p;
         }
     } else {
         switch (m->t[ny][nx].val) {
@@ -634,7 +661,7 @@ void move_npc(Map *m, Character *c) {
                 new_x = c->x + dx;
                 if (new_y < 0 || new_y >= HEIGHT || new_x < 0 || new_x >= WIDTH) continue;
                 if (m->ch[new_y][new_x] && m->ch[new_y][new_x]->type == PC_TYPE) {
-                    if (!npc->is_defeated) battle_interface(c);
+                    if (!npc->is_defeated) battle_interface(m->ch[new_y][new_x], c);
                     return;
                 }
                 if (dist_map[new_y][new_x] < min_dist && !m->ch[new_y][new_x]) {
@@ -699,6 +726,7 @@ void init_terminal(void) {
     init_pair(COLOR_RED,     COLOR_RED,     COLOR_BLACK);
     init_pair(COLOR_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
     init_pair(COLOR_BLACK,   COLOR_BLACK,   COLOR_BLACK);
+    refresh();
 }
 
 void output_map(Map *m) {
@@ -771,17 +799,95 @@ int dijiksra(int dist_map[HEIGHT][WIDTH], Map *m, terrain *pc_pos, enum char_typ
     return 0;
 }
 
-void enter_building(const char *building_name) {
+void enter_building(Character *c, const char *building_name) {
+    PC *pc = (PC *)c;
+    if (!strcmp(building_name, "Pokemart")) {
+        pc->potions = 5;
+        pc->revives = 5;
+        pc->pokeballs = 5;
+    } else if (!strcmp(building_name, "Pokemon Center")) {
+        for (auto p : pc->pokemon) {
+            p->set_current_hp(p->get_hp());
+        }
+    }
+
     int input = 0;
     while (input != '<') {
         clear();
         mvprintw(1, 0, "Welcome to the %s!", building_name);
-        mvprintw(2, 0, "This is a temporary placeholder.");
-        mvprintw(3, 0, "Press '<' to exit.");
+        if (!strcmp(building_name, "Pokemart")) {
+            mvprintw(2, 0, "Your items have been restocked!");
+        } else {
+            mvprintw(2, 0, "Your Pokemon have been fully healed!");
+        }
+        mvprintw(4, 0, "Press '<' to exit.");
         refresh();
         input = getch();
     }
 }
+
+void bag_interface(Character *c) {
+    PC *pc = (PC *)c;
+    int key = 0;
+    while (key != 27) {
+        clear();
+        mvprintw(1, 10, "INVENTORY");
+        mvprintw(3, 12, "1. Potions: %d", pc->potions);
+        mvprintw(4, 12, "2. Revives: %d", pc->revives);
+        mvprintw(5, 12, "3. Pokeballs: %d", pc->pokeballs);
+        mvprintw(7, 10, "Select an item to use on a Pokemon, or ESC to exit.");
+        refresh();
+        key = getch();
+
+        if (key == '1') {
+            if (pc->potions > 0) {
+                // Select pokemon to heal
+                int p_key = 0;
+                while (p_key != 27) {
+                    clear();
+                    mvprintw(1, 10, "Select a Pokemon to use Potion on:");
+                    for (size_t i = 0; i < pc->pokemon.size(); i++) {
+                        mvprintw(3 + i, 12, "%lu. %s (HP: %d/%d)", i + 1, pc->pokemon[i]->get_species(), pc->pokemon[i]->get_current_hp(), pc->pokemon[i]->get_hp());
+                    }
+                    refresh();
+                    p_key = getch();
+                    if (p_key >= '1' && (size_t)(p_key - '1') < pc->pokemon.size()) {
+                        int idx = p_key - '1';
+                        if (pc->pokemon[idx]->get_current_hp() > 0 && pc->pokemon[idx]->get_current_hp() < pc->pokemon[idx]->get_hp()) {
+                            int new_hp = pc->pokemon[idx]->get_current_hp() + 20;
+                            if (new_hp > pc->pokemon[idx]->get_hp()) new_hp = pc->pokemon[idx]->get_hp();
+                            pc->pokemon[idx]->set_current_hp(new_hp);
+                            pc->potions--;
+                            break;
+                        }
+                    }
+                }
+            }
+        } else if (key == '2') {
+            if (pc->revives > 0) {
+                int p_key = 0;
+                while (p_key != 27) {
+                    clear();
+                    mvprintw(1, 10, "Select a Pokemon to use Revive on:");
+                    for (size_t i = 0; i < pc->pokemon.size(); i++) {
+                        mvprintw(3 + i, 12, "%lu. %s (HP: %d/%d)", i + 1, pc->pokemon[i]->get_species(), pc->pokemon[i]->get_current_hp(), pc->pokemon[i]->get_hp());
+                    }
+                    refresh();
+                    p_key = getch();
+                    if (p_key >= '1' && (size_t)(p_key - '1') < pc->pokemon.size()) {
+                        int idx = p_key - '1';
+                        if (pc->pokemon[idx]->get_current_hp() == 0) {
+                            pc->pokemon[idx]->set_current_hp(pc->pokemon[idx]->get_hp() / 2);
+                            pc->revives--;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 void trainer_list(Map *m, Character *pc, int NUM_TRAINERS) {
     int i, j, dy, dx, count = 0;
@@ -820,26 +926,293 @@ void trainer_list(Map *m, Character *pc, int NUM_TRAINERS) {
     }
 }
 
-void battle_interface(Character *c) {
-    NPC *npc = (NPC *)c;
-    int input = 0;
+void battle_interface(Character *pc, Character *npc) {
+    battle_loop(pc, npc, NULL);
+}
 
-    while (input != 27) {
-        clear();
-        mvprintw(1, 10, "BATTLE WITH TRAINER %c", c->symbol);
-        int line = 3;
-        for (auto p : npc->pokemon) {
-            mvprintw(line++, 2, "%s lvl:%d %s %s stats:[%d,%d,%d,%d,%d,%d] moves:[%s, %s]", 
-                     p->get_species(), p->get_level(), p->get_gender_string(), 
-                     p->is_shiny() ? "shiny" : "",
-                     p->get_hp(), p->get_atk(), p->get_def(), p->get_spatk(), p->get_spdef(), p->get_speed(),
-                     p->get_move(0), p->get_move(1));
-            if (line > 20) break; // prevent overflow
-        }
-        mvprintw(22, 10, "Press ESC to exit battle.");
-        refresh();
-        input = getch();
+bool battle_loop(Character *pc_char, Character *npc_char, Pokemon *wild_p) {
+    PC *pc = (PC *)pc_char;
+    std::vector<Pokemon *> npc_party;
+    bool is_wild = (wild_p != NULL);
+    
+    if (is_wild) {
+        npc_party.push_back(wild_p);
+    } else {
+        npc_party = npc_char->pokemon;
     }
     
-    npc->is_defeated = true;
+    size_t pc_idx = 0;
+    while (pc_idx < pc->pokemon.size() && pc->pokemon[pc_idx]->get_current_hp() == 0) pc_idx++;
+    if (pc_idx == pc->pokemon.size()) return false;
+    
+    size_t npc_idx = 0;
+    int escape_attempts = 0;
+    
+    while (true) {
+        Pokemon *p_pc = pc->pokemon[pc_idx];
+        Pokemon *p_npc = npc_party[npc_idx];
+        
+        clear();
+        mvprintw(1, 10, "PC: %s (HP: %d/%d) vs %s: %s (HP: %d/%d)", 
+                 p_pc->get_species(), p_pc->get_current_hp(), p_pc->get_hp(),
+                 is_wild ? "Wild" : "NPC", p_npc->get_species(), p_npc->get_current_hp(), p_npc->get_hp());
+        
+        mvprintw(4, 12, "1. Fight");
+        mvprintw(5, 12, "2. Bag");
+        mvprintw(6, 12, "3. Run");
+        mvprintw(7, 12, "4. Pokemon");
+        refresh();
+        
+        int choice = getch();
+        int pc_action = -1;
+        int pc_move_idx = -1;
+        int item_choice = -1;
+        
+        if (choice == '1') {
+            while (true) {
+                clear();
+                mvprintw(1, 10, "Select a move:");
+                for (int i = 0; i < 4; i++) {
+                    const char *move_name = p_pc->get_move(i);
+                    if (move_name[0]) mvprintw(3 + i, 12, "%d. %s", i + 1, move_name);
+                }
+                mvprintw(8, 12, "0. Back");
+                refresh();
+                int m_choice = getch();
+                if (m_choice == '0') break;
+                if (m_choice >= '1' && m_choice <= '4' && p_pc->get_move(m_choice - '1')[0]) {
+                    pc_action = 0;
+                    pc_move_idx = m_choice - '1';
+                    break;
+                }
+            }
+            if (pc_action == -1) continue;
+        } else if (choice == '2') {
+            while (true) {
+                clear();
+                mvprintw(1, 10, "Select an item:");
+                mvprintw(3, 12, "1. Potion (%d)", pc->potions);
+                mvprintw(4, 12, "2. Revive (%d)", pc->revives);
+                mvprintw(5, 12, "3. Pokeball (%d)", pc->pokeballs);
+                mvprintw(7, 12, "0. Back");
+                refresh();
+                int b_choice = getch();
+                if (b_choice == '0') break;
+                if (b_choice == '1' && pc->potions > 0) { pc_action = 1; item_choice = 1; break; }
+                if (b_choice == '2' && pc->revives > 0) { pc_action = 1; item_choice = 2; break; }
+                if (b_choice == '3' && pc->pokeballs > 0) { pc_action = 1; item_choice = 3; break; }
+            }
+            if (pc_action == -1) continue;
+        } else if (choice == '3') {
+            if (!is_wild) {
+                mvprintw(9, 10, "You can't run from a trainer battle!");
+                refresh(); getch(); continue;
+            }
+            pc_action = 2;
+        } else if (choice == '4') {
+            while (true) {
+                clear();
+                mvprintw(1, 10, "Select a Pokemon to switch to:");
+                for (size_t i = 0; i < pc->pokemon.size(); i++) {
+                    mvprintw(3 + i, 12, "%lu. %s (HP: %d/%d)", i + 1, pc->pokemon[i]->get_species(), pc->pokemon[i]->get_current_hp(), pc->pokemon[i]->get_hp());
+                }
+                mvprintw(10, 12, "0. Back");
+                refresh();
+                int s_choice = getch();
+                if (s_choice == '0') break;
+                if (s_choice >= '1' && (size_t)(s_choice - '1') < pc->pokemon.size()) {
+                    int new_idx = s_choice - '1';
+                    if ((size_t)new_idx == pc_idx) {
+                        mvprintw(12, 10, "Already in battle!"); refresh(); getch(); continue;
+                    }
+                    if (pc->pokemon[new_idx]->get_current_hp() == 0) {
+                        mvprintw(12, 10, "That Pokemon is fainted!"); refresh(); getch(); continue;
+                    }
+                    pc_action = 3;
+                    pc_idx = new_idx;
+                    break;
+                }
+            }
+            if (pc_action == -1) continue;
+        } else {
+            continue;
+        }
+        
+        int npc_move_idx = 0;
+        std::vector<int> valid_npc_moves;
+        for (int i = 0; i < 4; i++) {
+            if (p_npc->get_move(i)[0]) valid_npc_moves.push_back(i);
+        }
+        npc_move_idx = valid_npc_moves[rand() % valid_npc_moves.size()];
+        
+        bool pc_first = true;
+        if (pc_action == 0) {
+            int pc_priority = 0;
+            int npc_priority = 0;
+            moves *m_pc = NULL, *m_npc = NULL;
+            for (auto m : moves_db) {
+                if (m->id == p_pc->get_move_id(pc_move_idx)) m_pc = m;
+                if (m->id == p_npc->get_move_id(npc_move_idx)) m_npc = m;
+            }
+            if (m_pc) pc_priority = m_pc->priority;
+            if (m_npc) npc_priority = m_npc->priority;
+            
+            if (pc_priority > npc_priority) pc_first = true;
+            else if (npc_priority > pc_priority) pc_first = false;
+            else {
+                if (p_pc->get_speed() > p_npc->get_speed()) pc_first = true;
+                else if (p_npc->get_speed() > p_pc->get_speed()) pc_first = false;
+                else pc_first = (rand() % 2 == 0);
+            }
+        } else {
+            pc_first = true;
+        }
+        
+        // Execute turns
+        for (int turn = 0; turn < 2; turn++) {
+            bool current_pc = (turn == 0) ? pc_first : !pc_first;
+            
+            if (current_pc) {
+                // PC's turn
+                if (pc_action == 0) {
+                    // Fight
+                    moves *m_pc = NULL;
+                    for (auto m : moves_db) {
+                        if (m->id == p_pc->get_move_id(pc_move_idx)) {
+                            m_pc = m;
+                            break;
+                        }
+                    }
+                    if (m_pc && (m_pc->accuracy == INT_MAX || rand() % 100 < m_pc->accuracy)) {
+                        int damage = calculate_damage(p_pc, p_npc, pc_move_idx);
+                        p_npc->set_current_hp(p_npc->get_current_hp() - damage);
+                        if (p_npc->get_current_hp() < 0) p_npc->set_current_hp(0);
+                        mvprintw(12, 10, "PC's %s uses %s! Did %d damage.", p_pc->get_species(), p_pc->get_move(pc_move_idx), damage);
+                    } else {
+                        mvprintw(12, 10, "PC's %s uses %s! It missed!", p_pc->get_species(), p_pc->get_move(pc_move_idx));
+                    }
+                } else if (pc_action == 1) {
+                    // Bag
+                    if (item_choice == 1) { // Potion
+                        int old_hp = p_pc->get_current_hp();
+                        int new_hp = old_hp + 20;
+                        if (new_hp > p_pc->get_hp()) new_hp = p_pc->get_hp();
+                        p_pc->set_current_hp(new_hp);
+                        pc->potions--;
+                        mvprintw(12, 10, "Used Potion! %s healed %d HP.", p_pc->get_species(), new_hp - old_hp);
+                    } else if (item_choice == 2) { // Revive
+                        mvprintw(12, 10, "Select a Pokemon to revive:");
+                        refresh();
+                        int r_choice = getch();
+                        if (r_choice >= '1' && (size_t)(r_choice - '1') < pc->pokemon.size()) {
+                            int r_idx = r_choice - '1';
+                            if (pc->pokemon[r_idx]->get_current_hp() == 0) {
+                                pc->pokemon[r_idx]->set_current_hp(pc->pokemon[r_idx]->get_hp() / 2);
+                                pc->revives--;
+                                mvprintw(14, 10, "%s was revived!", pc->pokemon[r_idx]->get_species());
+                            } else {
+                                mvprintw(14, 10, "Not fainted!");
+                            }
+                        }
+                    } else if (item_choice == 3) { // Pokeball
+                        if (!is_wild) {
+                            mvprintw(12, 10, "Can't catch trainer's Pokemon!");
+                        } else {
+                            if (pc->pokemon.size() < 6) {
+                                pc->pokemon.push_back(p_npc);
+                                pc->pokeballs--;
+                                mvprintw(12, 10, "Gotcha! %s was caught!", p_npc->get_species());
+                                refresh(); getch(); return true;
+                            } else {
+                                mvprintw(12, 10, "Party full! %s escaped!", p_npc->get_species());
+                                refresh(); getch(); return false;
+                            }
+                        }
+                    }
+                } else if (pc_action == 2) {
+                    // Run
+                    escape_attempts++;
+                    int speed_wild = p_npc->get_speed();
+                    int divisor = (speed_wild / 4);
+                    if (divisor == 0) divisor = 1;
+                    int odd_escape = ((p_pc->get_speed() * 32 / divisor) % 256) + 30 * escape_attempts;
+                    if (rand() % 256 < odd_escape) {
+                        mvprintw(12, 10, "Got away safely!");
+                        refresh(); getch(); return false;
+                    } else {
+                        mvprintw(12, 10, "Couldn't escape!");
+                    }
+                } else if (pc_action == 3) {
+                    mvprintw(12, 10, "Go! %s!", pc->pokemon[pc_idx]->get_species());
+                    p_pc = pc->pokemon[pc_idx];
+                }
+            } else {
+                // NPC's turn
+                moves *m_npc = NULL;
+                for (auto m : moves_db) {
+                    if (m->id == p_npc->get_move_id(npc_move_idx)) {
+                        m_npc = m;
+                        break;
+                    }
+                }
+                if (m_npc && (m_npc->accuracy == INT_MAX || rand() % 100 < m_npc->accuracy)) {
+                    int damage = calculate_damage(p_npc, p_pc, npc_move_idx);
+                    p_pc->set_current_hp(p_pc->get_current_hp() - damage);
+                    if (p_pc->get_current_hp() < 0) p_pc->set_current_hp(0);
+                    mvprintw(14, 10, "%s's %s uses %s! Did %d damage.", is_wild ? "Wild" : "NPC", p_npc->get_species(), p_npc->get_move(npc_move_idx), damage);
+                } else {
+                    mvprintw(14, 10, "%s's %s uses %s! It missed!", is_wild ? "Wild" : "NPC", p_npc->get_species(), p_npc->get_move(npc_move_idx));
+                }
+            }
+            refresh();
+            getch();
+            
+            if (p_npc->get_current_hp() == 0) {
+                mvprintw(16, 10, "%s's %s fainted!", is_wild ? "Wild" : "NPC", p_npc->get_species());
+                refresh(); getch();
+                npc_idx++;
+                if (npc_idx == npc_party.size()) {
+                    mvprintw(18, 10, "You won the battle!");
+                    if (!is_wild) ((NPC *)npc_char)->is_defeated = true;
+                    refresh(); getch(); return false;
+                }
+                p_npc = npc_party[npc_idx];
+                break;
+            }
+            if (p_pc->get_current_hp() == 0) {
+                mvprintw(16, 10, "PC's %s fainted!", p_pc->get_species());
+                refresh(); getch();
+                bool all_fainted = true;
+                for (size_t i = 0; i < pc->pokemon.size(); i++) {
+                    if (pc->pokemon[i]->get_current_hp() > 0) {
+                        all_fainted = false;
+                        break;
+                    }
+                }
+                if (all_fainted) {
+                    mvprintw(18, 10, "You lost the battle! All your Pokemon fainted.");
+                    refresh(); getch(); return false;
+                }
+                while (true) {
+                    clear();
+                    mvprintw(1, 10, "Select a Pokemon to switch to:");
+                    for (size_t i = 0; i < pc->pokemon.size(); i++) {
+                        mvprintw(3 + i, 12, "%lu. %s (HP: %d/%d)", i + 1, pc->pokemon[i]->get_species(), pc->pokemon[i]->get_current_hp(), pc->pokemon[i]->get_hp());
+                    }
+                    refresh();
+                    int s_choice = getch();
+                    if (s_choice >= '1' && (size_t)(s_choice - '1') < pc->pokemon.size()) {
+                        int new_idx = s_choice - '1';
+                        if (pc->pokemon[new_idx]->get_current_hp() > 0) {
+                            pc_idx = new_idx;
+                            p_pc = pc->pokemon[pc_idx];
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+    return false;
 }
