@@ -21,6 +21,7 @@ enum terrain_type{
     POKECENTER,
     POKEMART,
     BOULDER,
+    BLACKMARKET,
 };
 
 enum char_type {
@@ -32,7 +33,8 @@ enum char_type {
     PACER = 24,
     WANDERER = 34,
     SENTRY = 44,
-    EXPLORER = 54
+    EXPLORER = 54,
+    POLICE = 64
 };
 
 typedef struct terrain{
@@ -68,8 +70,12 @@ public:
     int potions;
     int revives;
     int pokeballs;
+    int money;
+    int stun_grenades;
+    std::vector<Pokemon *> stolen_pokemon;
+    std::vector<Pokemon *> stored_pokemon;
 
-    PC(int x, int y) : Character('@', char_type::PC_TYPE, x, y) {
+    PC(int x, int y) : Character('@', char_type::PC_TYPE, x, y), money(500), stun_grenades(3) {
         potions = 5;
         revives = 5;
         pokeballs = 5;
@@ -81,9 +87,10 @@ public:
 class NPC : public Character {
 public:
     bool is_defeated;
+    int stun_turns_remaining;
 
     NPC(char symbol, char_type type, int x, int y)
-        : Character(symbol, type, x, y), is_defeated(false) {}
+        : Character(symbol, type, x, y), is_defeated(false), stun_turns_remaining(0) {}
     ~NPC() override {}
     void takeTurn(class Map *m) override {}
 };
@@ -97,6 +104,9 @@ public:
     int pos_x, pos_y;
     heap char_heap;      // Per-map turn queue
     int current_time;    // Per-map time
+    bool is_wanted;
+    std::vector<Character *> police_list;
+    std::vector<Pokemon *> blackmarket_stock;
 
     Map(int pos_x, int pos_y, Map *N, Map *S, Map *E, Map *W);
     ~Map();
