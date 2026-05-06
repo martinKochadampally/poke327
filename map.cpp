@@ -80,6 +80,7 @@ int Map::seed() {
     queue q;
     terrain *current;
 
+    // printf("  Seeding map...\n");
     queue_init(&q);
 
     enum terrain_type regions[] = {CLEARING, TALL_GRASS, CLEARING, LAKE, ARCTIC, TALL_GRASS, CLEARING, FOREST, MOUNTAIN};
@@ -95,13 +96,18 @@ int Map::seed() {
         if (queue_enqueue(&q, x, y)) return -1;
     }
 
+    int safety = 0;
     while (!queue_size(&q, &size) && size) {
+        if (++safety > 10000) {
+            // printf("    Safety break in Map::seed!\n");
+            break;
+        }
         queue_dequeue(&q, &x, &y);
         current = &t[y][x];
 
-        if (current->N && current->N->val == EMPTY) {
-            current->N->val = current->val;
-            if (queue_enqueue(&q, x, y-1)) return -1;
+        if (current->E && current->E->val == EMPTY) {
+            current->E->val = current->val;
+            if (queue_enqueue(&q, x+1, y)) return -1;
         }
         if (current->S && current->S->val == EMPTY) {
             current->S->val = current->val;
@@ -111,12 +117,14 @@ int Map::seed() {
             current->W->val = current->val;
             if (queue_enqueue(&q, x-1, y)) return -1;
         }
-        if (current->E && current->E->val == EMPTY) {
-            current->E->val = current->val;
-            if (queue_enqueue(&q, x+1, y)) return -1;
+        if (current->N && current->N->val == EMPTY) {
+            current->N->val = current->val;
+            if (queue_enqueue(&q, x, y-1)) return -1;
         }
     }
 
+    // printf("  Map seeded.\n");
+    queue_destroy(&q);
     return 0;
 }
 
@@ -174,8 +182,10 @@ int Map::place_paths_and_buildings() {
 
 int Map::place_buildings(int intersection, int path, enum terrain_type VAL, int upperbound) {
     int tmp, x, y;
+    int safety = 0;
 
     do {
+        if (++safety > 10000) break;
         x = 1 + rand() % (intersection - 2);
         if (path > upperbound / 4) y = path - 2;
         else                       y = path + 1;
@@ -186,7 +196,9 @@ int Map::place_buildings(int intersection, int path, enum terrain_type VAL, int 
             || t[y][x].val == POKECENTER || t[y+1][x+1].val == POKECENTER
             || t[y][x].val == POKEMART   || t[y+1][x+1].val == POKEMART);
 
-    t[y][x].val = t[y][x+1].val = t[y+1][x].val = t[y+1][x+1].val = VAL;
+    if (safety <= 10000) {
+        t[y][x].val = t[y][x+1].val = t[y+1][x].val = t[y+1][x+1].val = VAL;
+    }
     return 0;
 }
 
