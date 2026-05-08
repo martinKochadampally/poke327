@@ -1,17 +1,41 @@
 # Poke 327
 
-## Overview
-This project is meant to be a Pokemon-like game. 
-You can explore a 400 by 400 world with various types of terrain, and fight with other NPC trainers.
+## New Updates: 1.10.2
+    - In this update, I added: 
+        - Stun Grenade:
+            - Key: 'g'
+            - This stuns an NPC who is within a 1 tile radius of you and they are incapacitated for 5po moves.
+            - You have 3 stuns and can be replenished at the PokeMart for free. :)
+        - Stealing Pokemon:
+            - Key: 's'.
+            - If an NPC is in a stunned state, you can steal thier pokemon.
+            - Since stealing is bad, if you steal pokemon, you become wanted an Police will be generated on the map everytime you steal.
+            - You can hold up to 3 stolen pokemon at a time.
+            - Stolen pokemon cannot be used in battles.
+        - Police:
+            - Symbol: 'P'
+            - The police pathfind to you like rivals and hikers and if the police catch you, it's game over. 
+            - Inorder to escape you must leave the map using one of the 4 gates.
+            - Flying would make stealing too easy, and so, if you are wanted on a map, you lose your ability to fly on that map.
+            - Once wanted, you will always be wanted on that map, and a soon as you re-enter, the police will beigin to chase you again.
+        -  Blackmarket:
+            - Keys:
+                - '>' to enter.   
+                - '<' to exit.   
+            - Symbol: 'B'
+            - These buldings can only be found after moving a manhatten distance of 25 or more from the center. 
+                - From d = 25 to d = 400, the probability increases linearly from 0% percent chance of spawning to an 80% chance of spawning.
+            - You can buy or sell stolen pokemon here. 
+            - Pokemon you buy here will be added to your party and can be used as anyother caught pokemon.
+            - The higher a pokemon's level is, the higher its value.
+            - Buying a said pokemon, will cost more than the value you can sell that said pokemon for. This is because the Black Market obviously needs to produce profit or its owners who ever they may be.
+        
 
-
-## New Features: 1.09
-    - I have implemented battles with Wild pokemon and other trainers. You can go to the pokemart to refill items and go to pokecenter to heal pokemon.
 
 
 ## Running Instructions
 1. Change directories(cd) into the below folder: 
-Bash ```cd kochadampally_martin.assignment-1.09```
+Bash ```cd kochadampally_martin.assignment-1.10.2```
 
 2. Clean the folder:
 Bash ```make clean```
@@ -25,6 +49,8 @@ Bash ```./poke```
 
 
 ## Previous Updates
+### 1.09
+    - I have implemented battles with Wild pokemon and other trainers. You can go to the pokemart to refill items and go to pokecenter to heal pokemon.
 ### 1.08
     - When you start the game, you will be given the choice of 3 starting pokemon.
     - As you traverse through tall grass, you have a 10% chance of encountering a wild pokemon. These pokemon will level may vary based on your ditance from the origin map.

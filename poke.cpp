@@ -1344,7 +1344,6 @@ int spawn_police_npc(Map *m, Character *pc) {
             spawn_x = 1;
             spawn_y = 1 + rand() % (HEIGHT - 2);
         } else {  // Right
-            
             spawn_x = WIDTH - 2;
             spawn_y = 1 + rand() % (HEIGHT - 2);
         }
