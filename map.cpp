@@ -34,6 +34,7 @@ Map::Map(int pos_x, int pos_y, Map *N, Map *S, Map *E, Map *W) {
     int x, y;
     current_time = 0;
     heap_init(&char_heap);
+    is_wanted = false;
 
     for (y = 0; y < HEIGHT; y++) {
         for (x = 0; x < WIDTH; x++) {
@@ -131,7 +132,7 @@ int Map::seed() {
 int Map::place_paths_and_buildings() {
     int i, x, y, intersection1, intersection2, min, max;
     int d = abs(pos_x - 200) + abs(pos_y - 200);
-    int center = 0, mart = 0;
+    int center = 0, mart = 0, blackmarket = 0;
 
     if (d == 0) {
         center = mart = 1;
@@ -143,6 +144,12 @@ int Map::place_paths_and_buildings() {
 
         if ((rand() % 100) < (p * 100)) center = 1;
         if ((rand() % 100) < (p * 100)) mart = 1;
+    }
+
+    // Blackmarket is more common on farther maps.
+    if (d > 25) {
+        double bm_prob = (0.8*((d-25)/375));
+        if ((rand() % 100) < (bm_prob * 100)) blackmarket = 1;
     }
 
     intersection1 = WIDTH/8 + rand() % (WIDTH - WIDTH/4);
@@ -171,6 +178,7 @@ int Map::place_paths_and_buildings() {
 
     if (center) place_buildings(intersection1, pW, POKECENTER, HEIGHT);
     if (mart)   place_buildings(intersection2, pN, POKEMART, WIDTH);
+    if (blackmarket) place_buildings(intersection2, pN, BLACKMARKET, WIDTH);
 
     t[pW][0].val = t[pE][WIDTH-1].val = t[0][pN].val = t[HEIGHT-1][pS].val = GATE;
 
